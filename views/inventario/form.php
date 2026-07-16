@@ -1,3 +1,44 @@
+<!-- Añadir esto en la sección de <style> -->
+<style>
+    
+    /* Contenedor que usa grid para reservar espacio al asa */
+    .fila-campo { 
+        background: #f8fafc; 
+        display: grid; 
+        grid-template-columns: 35px 1fr; /* Columna 1: Asa (35px), Columna 2: Resto */
+        align-items: center;
+        border-radius: 8px; 
+        border: 1px solid #e2e8f0; 
+        margin-bottom: 15px; 
+        position: relative; 
+    }
+
+    /* El asa ahora ocupa la primera celda del grid */
+    .handle { 
+        height: 100%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        cursor: grab; 
+        color: #cbd5e1; 
+        background: #f1f5f9; 
+        border-right: 1px solid #e2e8f0;
+        border-top-left-radius: 7px;
+        border-bottom-left-radius: 7px;
+    }
+    .handle:hover { color: #0f4c81; background: #e2e8f0; }
+
+    /* Contenedor interno para los campos */
+    .contenido-fila { padding: 20px; width: 100%; box-sizing: border-box; }
+    
+    .sortable-ghost { opacity: 0.4; background-color: #e2e8f0 !important; }
+</style>
+
+<!-- Añadir esto justo antes de cerrar el </body> -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+
+
 <div class="encabezado-modulo">
     <h2><?php echo $titulo_formulario; ?></h2>
 </div>
@@ -141,6 +182,18 @@
 <!-- JAVASCRIPT                                 -->
 <!-- ========================================== -->
 <script>
+
+document.addEventListener("DOMContentLoaded", () => {
+    // ... (tu código de carga existente)
+    
+    // Inicializar SortableJS sobre el contenedor
+    new Sortable(document.getElementById('contenedorConstructor'), {
+        handle: '.handle', // Se arrastra solo desde el icono de grip
+        animation: 150,
+        ghostClass: 'sortable-ghost'
+    });
+});
+
     // Variables globales para el modal
     let inputDestinoActual = null;
 
@@ -166,6 +219,9 @@
     // ---------------------------------------------
     // LÓGICA DEL CONSTRUCTOR
     // ---------------------------------------------
+
+
+
     function agregarCampoAvanzado(datos = null) {
         const fila = document.createElement('div');
         fila.className = 'fila-campo';
@@ -179,59 +235,50 @@
         const valMCalc= datos && datos.modulo_calculado ? datos.modulo_calculado : '';
 
         fila.innerHTML = `
-            <button type="button" class="btn-eliminar-fila" onclick="this.parentElement.remove()" title="Eliminar campo"><i class="fa-solid fa-xmark"></i></button>
+        <div class="handle"><i class="fa-solid fa-grip-vertical"></i></div>
+        <div class="contenido-fila">
+            <button type="button" class="btn-eliminar-fila" style="position:relative; float:right;" onclick="this.parentElement.parentElement.remove()">X</button>
             
             <div class="grid-principal">
                 <div class="form-group">
                     <label>Descripción del Campo *</label>
-                    <input type="text" class="c-descripcion" placeholder="Ej: Matrícula, Tara..." value="${valDesc}" required>
+                    <input type="text" class="c-descripcion" value="${valDesc}" required>
                 </div>
-                
                 <div class="form-group">
                     <label>Tipo de Dato *</label>
-                    <select class="c-tipo" onchange="evaluarCondicionales(this)" required>
+                    <select class="c-tipo" onchange="evaluarCondicionales(this)">
                         <option value="text" ${valTipo === 'text' ? 'selected' : ''}>Texto Corto</option>
                         <option value="number" ${valTipo === 'number' ? 'selected' : ''}>Numérico</option>
                         <option value="date" ${valTipo === 'date' ? 'selected' : ''}>Fecha</option>
-                        <option value="lookup" ${valTipo === 'lookup' ? 'selected' : ''}>Gestor de Tablas (Ayuda)</option>
+                        <option value="lookup" ${valTipo === 'lookup' ? 'selected' : ''}>Gestor de Tablas</option>
                     </select>
                 </div>
-                
                 <div class="form-group">
-                    <label>Módulo Validación (Opcional)</label>
-                    <input type="text" class="c-mod-validacion" placeholder="Ej: val_matricula" value="${valMod}">
+                    <label>Módulo Validación</label>
+                    <input type="text" class="c-mod-validacion" value="${valMod}">
                 </div>
             </div>
 
             <div class="opciones-checkbox">
-                <label class="checkbox-item">
-                    <input type="checkbox" class="c-obligatorio" ${isOblig}>
-                    Es Obligatorio
-                </label>
-                <label class="checkbox-item">
-                    <input type="checkbox" class="c-calculado" onchange="evaluarCondicionales(this)" ${isCalc}>
-                    Es Calculado
-                </label>
+                <label class="checkbox-item"><input type="checkbox" class="c-obligatorio" ${isOblig}> Es Obligatorio</label>
+                <label class="checkbox-item"><input type="checkbox" class="c-calculado" onchange="evaluarCondicionales(this)" ${isCalc}> Es Calculado</label>
             </div>
 
             <div class="grid-condicional">
-                <!-- NUEVO INPUT CON BOTÓN PARA EL MODAL -->
-                <div class="form-group conf-tabla" style="display: none;">
-                    <label>Tabla de Referencia (Lookup) *</label>
+                <div class="form-group conf-tabla" style="display:none;">
+                    <label>Tabla de Referencia *</label>
                     <div class="input-grupo-modal">
-                        <input type="text" class="c-tabla-ayuda" placeholder="Seleccionar tabla..." value="${valTabl}" readonly onclick="abrirModalTablas(this)">
-                        <button type="button" onclick="abrirModalTablas(this.previousElementSibling)" title="Buscar Tabla">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </button>
+                        <input type="text" class="c-tabla-ayuda" value="${valTabl}" readonly onclick="abrirModalTablas(this)">
+                        <button type="button" onclick="abrirModalTablas(this.previousElementSibling)"><i class="fa-solid fa-magnifying-glass"></i></button>
                     </div>
                 </div>
-                
-                <div class="form-group conf-calculo" style="display: none;">
-                    <label>Módulo Calculado (Autocompletar) *</label>
-                    <input type="text" class="c-mod-calculado" placeholder="Ej: calc_tara_max" value="${valMCalc}">
+                <div class="form-group conf-calculo" style="display:none;">
+                    <label>Módulo Calculado *</label>
+                    <input type="text" class="c-mod-calculado" value="${valMCalc}">
                 </div>
             </div>
-        `;
+        </div>
+    `;
         document.getElementById('contenedorConstructor').appendChild(fila);
         setTimeout(() => evaluarCondicionales(fila.querySelector('.c-tipo')), 0);
     }
