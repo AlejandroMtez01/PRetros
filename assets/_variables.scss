@@ -1,0 +1,23 @@
+// Paleta Corporativa
+$color-primario: #0f4c81;
+$color-primario-hover: darken($color-primario, 8%);
+$color-sidebar: #1e293b;
+$color-fondo: #f1f5f9;
+$color-blanco: #ffffff;
+
+// Escala de Grises y Bordes
+$color-texto-principal: #1e293b;
+$color-texto-secundario: #475569;
+$color-texto-claro: #94a3b8;
+$color-borde: #e2e8f0;
+
+// Estados y Formularios
+$color-input-bg: #f8fafc;
+$color-focus: rgba(15, 76, 129, 0.15);
+$color-error: #ef4444;
+$color-error-bg: #fee2e2;
+$color-error-focus: rgba(239, 68, 68, 0.15);
+$color-exito: #10b981;
+
+// Tipografía
+$fuente-base: 'Segoe UI', system-ui, sans-serif;

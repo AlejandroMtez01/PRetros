@@ -1,0 +1,181 @@
+.tarjeta-datos {
+    background: $color-blanco;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    border: 1px solid $color-borde;
+    overflow: hidden; // Para que los bordes redondeados no se rompan
+}
+
+.tabla-estandar {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+
+    thead {
+        background-color: $color-fondo;
+        
+        th {
+            padding: 16px 20px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: $color-texto-secundario;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid $color-borde;
+        }
+    }
+
+    tbody {
+        tr {
+            border-bottom: 1px solid $color-borde;
+            transition: background-color 0.2s;
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            &:hover {
+                background-color: rgba(241, 245, 249, 0.5); // Gris muy sutil
+            }
+        }
+
+        td {
+            padding: 16px 20px;
+            font-size: 0.95rem;
+            color: $color-texto-principal;
+            vertical-align: middle;
+
+            a {
+                color: $color-primario;
+                text-decoration: none;
+                font-weight: 600;
+
+                &:hover {
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+}
+
+// =========================================
+// ESTILOS ESTÁNDAR PARA MÓDULOS Y TABLAS
+// =========================================
+
+// Variables sugeridas (puedes sustituirlas por las de tu _variables.scss si ya tienes)
+$color-texto-principal: #1e293b;
+$color-texto-secundario: #475569;
+$color-borde: #e2e8f0;
+$color-fondo-cabecera: #f8fafc;
+
+/* Encabezado superior */
+.encabezado-modulo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+
+    h2 {
+        margin: 0;
+        color: $color-texto-principal;
+        font-weight: bold;
+    }
+}
+
+/* Contenedor principal de la tabla */
+.contenedor-tabla {
+    background-color: #fff;
+    border-radius: 8px;
+    border: 1px solid $color-borde;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* La tabla de datos */
+.tabla-datos {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+
+    thead {
+        background-color: $color-fondo-cabecera;
+        border-bottom: 1px solid $color-borde;
+    }
+
+    th {
+        padding: 16px 20px;
+        font-size: 0.8rem;
+        color: $color-texto-secundario;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    tr {
+        border-bottom: 1px solid $color-borde;
+
+        // Quitamos el borde al último elemento para que quede limpio
+        &:last-child {
+            border-bottom: none;
+        }
+    }
+
+    td {
+        padding: 16px 20px;
+        vertical-align: middle;
+        color: #334155;
+        font-size: 0.95rem;
+
+        // Estilo específico para cuando la tabla no tiene registros
+        &.tabla-vacia {
+            padding: 40px !important;
+            text-align: center !important;
+            color: #64748b !important;
+        }
+    }
+}
+
+/* =========================================
+   BOTONES DE ACCIÓN EN TABLAS
+   ========================================= */
+.celda-acciones {
+    display: flex;
+    gap: 8px;
+
+    .btn-sm {
+        padding: 6px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+
+        /* Modificadores de color aprovechando el & de SCSS */
+        
+        &.btn-centros {
+            background-color: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+
+            &:hover { background-color: #dcfce7; }
+        }
+
+        &.btn-editar {
+            background-color: #f8fafc;
+            color: #0f4c81;
+            border: 1px solid #cbd5e1;
+
+            &:hover { background-color: #f1f5f9; }
+        }
+
+        &.btn-eliminar {
+            background-color: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #fecaca;
+
+            &:hover { background-color: #fee2e2; }
+        }
+    }
+}

@@ -1,0 +1,11 @@
+// 1. Variables y configuraciones base
+@import 'variables';
+
+// 2. Esqueleto de la web
+@import 'layout';
+
+// 3. Componentes UI reutilizables
+@import 'botones';
+@import 'tablas';
+@import 'formularios';
+@import 'errores';

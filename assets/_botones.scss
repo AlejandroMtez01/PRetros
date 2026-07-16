@@ -1,0 +1,86 @@
+.btn-primario, .btn-secundario {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    border: none;
+}
+/* Estructura base para botones pequeños en tablas */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    text-decoration: none !important;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+/* Diseño específico para el botón de Editar (Azul claro) */
+.btn-editar {
+    background-color: #f8fafc;
+    color: #0f4c81;
+    border-color: #cbd5e1;
+    
+    &:hover {
+        background-color: #e2e8f0;
+        border-color: #94a3b8;
+    }
+}
+
+/* Diseño específico para el botón de Eliminar (Rojo claro) */
+.btn-eliminar {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border-color: #fecaca;
+
+    &:hover {
+        background-color: #fee2e2;
+        border-color: #f87171;
+    }
+}
+
+/* Clase para la celda de la tabla para separar los botones */
+.celda-acciones {
+    display: flex;
+    gap: 10px; /* Esto es lo que los mantiene separaditos */
+    align-items: center;
+}
+
+.btn-primario {
+    background-color: $color-primario;
+    color: $color-blanco;
+
+    &:hover { 
+        background-color: $color-primario-hover; 
+        transform: translateY(-1px); 
+    }
+    
+    &:active { transform: translateY(1px); }
+    
+    &.cargando {
+        opacity: 0.8;
+        cursor: not-allowed;
+    }
+}
+
+.btn-secundario {
+    background-color: $color-blanco;
+    color: $color-texto-secundario;
+    border: 1px solid $color-borde;
+
+    &:hover { 
+        background-color: $color-fondo; 
+        color: $color-texto-principal; 
+    }
+}
