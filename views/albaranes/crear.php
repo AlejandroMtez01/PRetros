@@ -2,7 +2,7 @@
     <h2>Crear Nuevo Albarán</h2>
 
     <form action="/index.php?controller=albaran&action=guardar" method="POST" id="formAlbaran">
-        
+
         <!-- ========================================== -->
         <!-- CABECERA DEL ALBARÁN                       -->
         <!-- ========================================== -->
@@ -17,6 +17,12 @@
                     <label>Cliente</label>
                     <select name="idCliente" required>
                         <option value="">Selecciona cliente...</option>
+
+                        <?php
+                        foreach ($clientes as $cliente) {
+                        ?> <option value="<?php echo $cliente["id"]; ?>"><?php echo $cliente["razonSocial"]; ?></option>
+                        <?php
+                        }                        ?>
                         <!-- Aquí iteraremos los $clientes -->
                     </select>
                 </div>
@@ -24,7 +30,11 @@
                     <label>Centro de Trabajo</label>
                     <select name="idCentro" required>
                         <option value="">Selecciona centro...</option>
-                        <!-- Aquí iteraremos los $centros -->
+                         <?php
+                        foreach ($centros as $centro) {
+                        ?> <option value="<?php echo $centro["id"]; ?>"><?php echo $centro["direccion"]; ?></option>
+                        <?php
+                        }                        ?>
                     </select>
                 </div>
             </div>
@@ -41,7 +51,7 @@
         <!-- ========================================== -->
         <fieldset>
             <legend>Líneas de Trabajo</legend>
-            
+
             <!-- Botón para abrir el modal de empleados -->
             <button type="button" class="btn-secundario" onclick="abrirModalEmpleados()">
                 <i class="fa-solid fa-user-plus"></i> Añadir Empleado
@@ -86,17 +96,18 @@
             </thead>
             <tbody>
                 <?php if (!empty($empleados)): foreach ($empleados as $emp): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($emp['nombre'] . ' ' . $emp['apellido1']); ?></td>
-                        <td><?php echo htmlspecialchars($emp['DNI']); ?></td>
-                        <td>
-                            <button type="button" class="btn-sm btn-editar" 
-                                onclick="agregarLineaEmpleado(<?php echo $emp['id']; ?>, '<?php echo htmlspecialchars(addslashes($emp['nombre'] . ' ' . $emp['apellido1'])); ?>')">
-                                Seleccionar
-                            </button>
-                        </td>
-                    </tr>
-                <?php endforeach; endif; ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($emp['nombre'] . ' ' . $emp['apellido1']); ?></td>
+                            <td><?php echo htmlspecialchars($emp['DNI']); ?></td>
+                            <td>
+                                <button type="button" class="btn-sm btn-editar"
+                                    onclick="agregarLineaEmpleado(<?php echo $emp['id']; ?>, '<?php echo htmlspecialchars(addslashes($emp['nombre'] . ' ' . $emp['apellido1'])); ?>')">
+                                    Seleccionar
+                                </button>
+                            </td>
+                        </tr>
+                <?php endforeach;
+                endif; ?>
             </tbody>
         </table>
         <button type="button" class="btn-eliminar" onclick="cerrarModalEmpleados()" style="margin-top: 15px;">Cancelar</button>
@@ -113,25 +124,31 @@
     let contadorLineas = 0;
 
     // Funciones del Modal
-    function abrirModalEmpleados() { modal.style.display = 'block'; }
-    function cerrarModalEmpleados() { modal.style.display = 'none'; }
+    function abrirModalEmpleados() {
+        modal.style.display = 'block';
+    }
+
+    function cerrarModalEmpleados() {
+        modal.style.display = 'none';
+    }
 
     // Generar las opciones de vehículos con "Precio Hora" pasadas desde PHP
     // Esto asume que el controlador te manda un JSON o generas el HTML aquí
     const opcionesVehiculos = `
         <option value="">Seleccione vehículo...</option>
-        <?php if(!empty($vehiculos_precio_hora)): foreach($vehiculos_precio_hora as $veh): ?>
+        <?php if (!empty($vehiculos_precio_hora)): foreach ($vehiculos_precio_hora as $veh): ?>
             <option value="<?php echo $veh['id']; ?>"><?php echo htmlspecialchars($veh['denominacion']); ?></option>
-        <?php endforeach; endif; ?>
+        <?php endforeach;
+        endif; ?>
     `;
 
     // Función principal: Añadir fila a la tabla al seleccionar un empleado
     function agregarLineaEmpleado(idEmpleado, nombreEmpleado) {
         contadorLineas++;
-        
+
         const fila = document.createElement('tr');
         fila.id = 'linea_' + contadorLineas;
-        
+
         fila.innerHTML = `
             <td>
                 <!-- Input oculto para enviar al POST -->
@@ -160,7 +177,7 @@
                 </button>
             </td>
         `;
-        
+
         tbodyLineas.appendChild(fila);
         cerrarModalEmpleados();
     }
@@ -168,7 +185,7 @@
     // Lógica para mostrar/ocultar el vehículo si es maquinista
     function comprobarCategoria(selectElement, idFila) {
         const selectVehiculo = document.getElementById('vehiculo_' + idFila);
-        
+
         if (selectElement.value === 'maquinista') {
             selectVehiculo.style.display = 'block';
             selectVehiculo.disabled = false;
@@ -184,12 +201,30 @@
     // Función para borrar la fila de la vista
     function eliminarLinea(idFila) {
         const fila = document.getElementById('linea_' + idFila);
-        if (fila) { fila.remove(); }
+        if (fila) {
+            fila.remove();
+        }
     }
 </script>
 
 <style>
     /* Estilos básicos para el modal */
-    .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-    .modal-contenido { background-color: #fff; margin: 5% auto; padding: 20px; width: 80%; max-width: 700px; border-radius: 8px; }
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-contenido {
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 20px;
+        width: 80%;
+        max-width: 700px;
+        border-radius: 8px;
+    }
 </style>
