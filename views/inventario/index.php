@@ -1,3 +1,8 @@
+<div class="cabecera-modulo">
+    <h1>Directorio de Catalogo de Inventario</h1>
+    <!-- Este botón lleva al formulario de alta -->
+    <a href="/index.php?controller=catalogo_inventario&action=crear" class="btn-primario">+ Nuevo Catálogo de Inventario</a>
+</div>
 <div class="contenedor-tabla">
     <table class="tabla-datos">
         <thead>
@@ -66,10 +71,10 @@
                         </td>
                         
                         <td class="celda-acciones">
-                            <a href="/index.php?controller=inventario&action=editar&id=<?php echo urlencode($tipo['prefijo']); ?>" class="btn-sm btn-editar">
+                            <a href="/index.php?controller=catalogo_inventario&action=editar&id=<?php echo urlencode($tipo['prefijo']); ?>" class="btn-sm btn-editar">
                                 <i class="fa-solid fa-pen"></i> Editar
                             </a>
-                            <a href="/index.php?controller=inventario&action=eliminar&id=<?php echo urlencode($tipo['prefijo']); ?>" onclick="return confirm('¿Seguro que deseas eliminar este tipo de inventario?');" class="btn-sm btn-eliminar">
+                            <a href="/index.php?controller=catalogo_inventario&action=eliminar&id=<?php echo urlencode($tipo['prefijo']); ?>" onclick="return confirm('¿Seguro que deseas eliminar este tipo de inventario?');" class="btn-sm btn-eliminar">
                                 <i class="fa-solid fa-xmark"></i> Eliminar
                             </a>
                         </td>

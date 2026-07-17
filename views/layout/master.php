@@ -138,6 +138,7 @@
                 <li><a href="/index.php?controller=articulo">🚜 Inventario</a></li>
                 <!-- <li><a href="/index.php?controller=catalogo_operacion">📋 Catálogo Operaciones</a></li> -->
                 <!-- <li><a href="/index.php?controller=proyecto">🏗️ Proyectos</a></li> -->
+                 <li><a href="/index.php?controller=albaran">📝 Albaranes</a></li>
                 <li><a href="/index.php?controller=tabla&action=index">🔧 Tablas Auxiliares</a></li>
             </ul>
             <br><br><br>

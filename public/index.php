@@ -64,9 +64,15 @@ switch ($controladorSolicitado) {
         require_once '../controllers/TablaController.php'; // Apuntamos un nivel atrás
         $controller = new TablaController($conexion);
         break;
-        case 'articulo':
+    case 'articulo':
         require_once '../controllers/ArticuloController.php';
         $controller = new ArticuloController($conexion);
+        break;
+    case 'albaran':
+        require_once '../controllers/AlbaranController.php';
+        $controller = new AlbaranController($conexion);
+
+
         break;
     // (Aquí puedes añadir los case para cliente, vehiculo, proyecto, etc.)
 

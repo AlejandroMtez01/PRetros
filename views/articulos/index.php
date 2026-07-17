@@ -1,3 +1,8 @@
+<div class="cabecera-modulo">
+    <h1>Directorio de Inventario</h1>
+    <!-- Este botón lleva al formulario de alta -->
+    <a href="/index.php?controller=articulo&action=crear" class="btn-primario">+ Nuevo Inventario</a>
+</div>
 <div class="contenedor-tabla">
     <table class="tabla-datos">
         <thead>
