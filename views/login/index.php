@@ -162,7 +162,7 @@
 
         <!-- Enlace para ir al formulario de registro si el usuario no existe -->
         <div class="enlace-registro">
-            ¿No tienes una cuenta? <a href="/PRetros/public/index.php?controller=login&action=registrar">Regístrate aquí</a>
+            ¿No tienes una cuenta? <a href="/index.php?controller=login&action=registrar">Regístrate aquí</a>
         </div>
     </div>
 

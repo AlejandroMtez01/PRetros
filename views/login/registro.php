@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - ERP Remediación</title>
-    <!-- Cargamos los iconos de FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -17,12 +16,11 @@
             min-height: 100vh;
             margin: 0;
             color: #1e293b;
-            padding: 20px; /* Por si se ve en pantallas pequeñas */
+            padding: 20px; 
         }
         .tarjeta-login {
             background-color: #ffffff;
             width: 100%;
-            /* Hacemos la tarjeta un poco más ancha que la del login */
             max-width: 500px; 
             padding: 40px;
             border-radius: 12px;
@@ -41,7 +39,6 @@
             font-size: 0.95rem;
         }
         
-        /* Sistema de rejilla para poner campos uno al lado del otro */
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -59,7 +56,8 @@
             color: #475569;
             font-size: 0.9rem;
         }
-        .grupo-form input {
+        /* Añadimos 'select' a la regla CSS de los inputs */
+        .grupo-form input, .grupo-form select {
             width: 100%;
             padding: 12px;
             border: 1px solid #cbd5e1;
@@ -67,8 +65,9 @@
             font-size: 1rem;
             box-sizing: border-box;
             background-color: #f8fafc;
+            color: #1e293b;
         }
-        .grupo-form input:focus {
+        .grupo-form input:focus, .grupo-form select:focus {
             outline: none;
             border-color: #0f4c81;
             box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.1);
@@ -124,14 +123,12 @@
         <h1>Crear Cuenta</h1>
         <p>Rellena tus datos para darte de alta en el ERP</p>
 
-        <!-- Bloque de error si falla la inserción en la BD -->
         <?php if (isset($error)): ?>
             <div class="alerta-error">
                 <i class="fa-solid fa-triangle-exclamation"></i> <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
 
-        <!-- El formulario apunta a la acción 'registrar' de tu controlador -->
         <form action="/PRetros/public/index.php?controller=login&action=registrar" method="POST">
             
             <div class="grid-2">
@@ -151,9 +148,18 @@
                     <input type="text" id="apellido2" name="apellido2" placeholder="(Opcional)">
                 </div>
                 <div class="grupo-form">
-                    <label for="idEmpresa">Código de Empresa *</label>
-                    <!-- Puedes dejar esto como number o, en el futuro, convertirlo en un <select> -->
-                    <input type="number" id="idEmpresa" name="idEmpresa" value="1" required>
+                    <label for="idEmpresa">Empresa *</label>
+                    <!-- EL INPUT NUMÉRICO FUE SUSTITUIDO POR ESTE SELECT -->
+                    <select id="idEmpresa" name="idEmpresa" required>
+                        <option value="">Selecciona una empresa...</option>
+                        <?php if (isset($empresas) && !empty($empresas)): ?>
+                            <?php foreach ($empresas as $emp): ?>
+                                <option value="<?= htmlspecialchars($emp['id']) ?>">
+                                    <?= htmlspecialchars($emp['denominacion']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
                 </div>
             </div>
 

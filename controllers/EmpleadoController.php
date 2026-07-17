@@ -1,28 +1,43 @@
 <?php
 require_once '../models/Empleado.php';
 
-class EmpleadoController {
+class EmpleadoController
+{
     private $modelo;
 
-    public function __construct(mysqli $conexion) {
+    public function __construct(mysqli $conexion)
+    {
         $this->modelo = new Empleado($conexion);
     }
 
     // 1. Mostrar Listado
-    public function index() {
-        $empleados = $this->modelo->obtenerTodos();
+    public function index()
+    {
+        // 1. Aseguramos que la sesión está iniciada
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // 2. Rescatamos la empresa activa en la que está el usuario
+        $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
+
+        // 3. Pasamos esa empresa al modelo para que filtre la consulta SQL
+        $empleados = $this->modelo->obtenerTodos($idEmpresaActiva);
+
+        // 4. Cargamos tus vistas habituales...
         $contenido_vista = '../views/empleados/index.php';
-        require_once '../views/layout/master.php';
+        require_once '../views/layout/master.php'; // (O el nombre de tu plantilla base)
     }
 
     // 2. Mostrar Formulario Vacío (ALTA)
-    public function crear() {
+    public function crear()
+    {
         $empleado = null; // No hay datos porque es un alta nueva
         $titulo_formulario = "Alta de Nuevo Empleado";
-        
+
         // A dónde enviará los datos el formulario al pulsar 'Guardar'
         $accion_url = "?controller=empleado&action=guardar";
-        
+
         $contenido_vista = '../views/empleados/form.php';
         require_once '../views/layout/master.php';
     }
@@ -30,51 +45,57 @@ class EmpleadoController {
     // 3. Recibir los datos del formulario e insertar en la BD
     public function guardar() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            
-            // Empaquetamos los datos que vienen del formulario HTML
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
+            // Recogemos todos los datos del formulario
             $datos = [
-                'nombre'    => trim($_POST['nombre']),
-                'apellido1' => trim($_POST['apellido1']),
-                'apellido2' => trim($_POST['apellido2'] ?? null),
-                'DNI'       => trim($_POST['DNI']),
-                'numSS'     => trim($_POST['numSS']),
+                'nombre'    => $_POST['nombre'],
+                'apellido1' => $_POST['apellido1'],
+                'apellido2' => $_POST['apellido2'],
+                'DNI'       => $_POST['DNI'],
+                'numSS'     => $_POST['numSS'],
                 'fechaAlta' => $_POST['fechaAlta'],
-                
-                // NOTA: En un entorno real, estos dos IDs se cogen de $_SESSION
+                'fechaBaja' => !empty($_POST['fechaBaja']) ? $_POST['fechaBaja'] : null,
                 'idUsuario' => $_SESSION['usuario_id'], 
-                'idEmpresa' => $_SESSION['idEmpresa']  
+                
+                // CRUCIAL: Le inyectamos la empresa activa actual
+                'idEmpresa' => $_SESSION['idEmpresa'] 
             ];
 
-            // Se los pasamos al modelo para que haga el INSERT
+            // Llamamos al modelo que actualizamos antes
             $this->modelo->crearEmpleado($datos);
 
-            // Redirigimos de vuelta a la tabla principal
-            header("Location: /?controller=empleado&action=index");
+            // Redirigimos al listado
+            header("Location: /index.php?controller=empleado");
             exit;
         }
     }
     // 4. Mostrar Formulario Lleno (MODIFICACIÓN)
-    public function editar($id) {
+    public function editar($id)
+    {
         // Buscamos los datos actuales del empleado en la BD
         $empleado = $this->modelo->obtenerPorId($id);
-        
+
         if (!$empleado) {
             die("Error: El empleado que intentas editar no existe.");
         }
 
         $titulo_formulario = "Modificar Datos del Empleado";
-        
+
         // Fíjate que la URL ahora apunta a 'actualizar' y le pasa el ID
         $accion_url = "/PRetros/public/index.php?controller=empleado&action=actualizar&id=" . $id;
-        
+
         $contenido_vista = '../views/empleados/form.php';
         require_once '../views/layout/master.php';
     }
 
     // 5. Recibir los datos modificados y hacer el UPDATE en la BD
-    public function actualizar($id) {
+    public function actualizar($id)
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            
+
             $datos = [
                 'nombre'    => trim($_POST['nombre']),
                 'apellido1' => trim($_POST['apellido1']),
@@ -83,7 +104,7 @@ class EmpleadoController {
                 'numSS'     => trim($_POST['numSS']),
                 'fechaAlta' => $_POST['fechaAlta'],
                 'fechaBaja' => !empty($_POST['fechaBaja']) ? $_POST['fechaBaja'] : null,
-                
+
                 // Actualizamos el idUsuario para saber quién fue el último en modificarlo
                 'idUsuario' => $_SESSION['usuario_id']
             ];
@@ -97,7 +118,8 @@ class EmpleadoController {
         }
     }
     // 6. Eliminar un empleado de la BD
-    public function eliminar($id) {
+    public function eliminar($id)
+    {
         // Nos aseguramos de que nos llega un ID antes de intentar borrar
         if (!empty($id)) {
             $this->modelo->eliminarEmpleado($id);
@@ -108,4 +130,3 @@ class EmpleadoController {
         exit;
     }
 }
-?>
