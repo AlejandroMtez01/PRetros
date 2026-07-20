@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
 $mensaje_error = $_SESSION['error_guardado'] ?? null;
 unset($_SESSION['error_guardado']);
 
+// Recogemos la variable de errores (si el controlador la ha pasado)
+$erroresLineas = isset($erroresLineas) ? $erroresLineas : [];
+
 // ==========================================
 // DETECCIÓN DE MODO: CREAR O EDITAR
 // ==========================================
@@ -23,10 +26,11 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         </a>
     </div>
 
-    <!-- Bloque de Error Preciso -->
+    <!-- Bloque de Error -->
     <?php if ($mensaje_error): ?>
         <div class="alerta-error">
-            <i class="fa-solid fa-triangle-exclamation"></i> <strong>Error de Base de Datos:</strong> <?= htmlspecialchars($mensaje_error) ?>
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <?php echo is_array($mensaje_error) ? implode(" ", $mensaje_error) : htmlspecialchars($mensaje_error); ?>
         </div>
     <?php endif; ?>
 
@@ -43,15 +47,20 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
             <legend>Datos del Albarán</legend>
             <div class="grid-3">
                 <div class="form-group">
+                    <label>Número Albarán</label>
+                    <input type="number" name="numAlbaran" value="<?php echo htmlspecialchars($albaran['numAlbaran'] ?? ''); ?>" required <?php echo $esEdicion ? 'readonly' : ''; ?>>
+                </div>
+                <div class="form-group">
                     <label>Fecha</label>
-                    <input type="date" name="fecha" value="<?php echo $esEdicion ? htmlspecialchars(substr($albaran['fecha'], 0, 10)) : ''; ?>" required>
+                    <input type="date" name="fecha" value="<?php echo htmlspecialchars(substr($albaran['fecha'] ?? '', 0, 10)); ?>" required>
                 </div>
 
                 <div class="form-group">
                     <label>Cliente</label>
                     <div class="input-con-boton">
-                        <input type="hidden" name="idCliente" id="idClienteInput" value="<?php echo $esEdicion ? $albaran['idCliente'] : ''; ?>" required>
-                        <input type="text" id="nombreClienteInput" value="<?php echo $esEdicion ? htmlspecialchars($albaran['nombreCliente']) : ''; ?>" placeholder="Seleccione cliente..." readonly required>
+                        <input type="hidden" name="idCliente" id="idClienteInput" value="<?php echo $albaran['idCliente'] ?? ''; ?>" required>
+                        <!-- Se añade el 'name' para no perder el dato en las validaciones -->
+                        <input type="text" name="nombreCliente" id="nombreClienteInput" value="<?php echo htmlspecialchars($albaran['nombreCliente'] ?? ''); ?>" placeholder="Seleccione cliente..." readonly required>
                         <button type="button" class="btn-secundario btn-icono" onclick="abrirModal('modalClientes')">
                             <i class="fa-solid fa-building"></i> Buscar
                         </button>
@@ -61,9 +70,10 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 <div class="form-group">
                     <label>Centro de Trabajo</label>
                     <div class="input-con-boton">
-                        <input type="hidden" name="idCentro" id="idCentroInput" value="<?php echo $esEdicion ? $albaran['idCentro'] : ''; ?>" required>
-                        <input type="text" id="nombreCentroInput" value="<?php echo $esEdicion ? htmlspecialchars($albaran['nombreCentro']) : ''; ?>" placeholder="Seleccione primero un cliente..." readonly required>
-                        <button type="button" id="btnBuscarCentro" class="btn-secundario btn-icono" onclick="abrirModal('modalCentros')" <?php echo $esEdicion ? '' : 'disabled'; ?>>
+                        <input type="hidden" name="idCentro" id="idCentroInput" value="<?php echo $albaran['idCentro'] ?? ''; ?>" required>
+                        <!-- Se añade el 'name' para no perder el dato en las validaciones -->
+                        <input type="text" name="nombreCentro" id="nombreCentroInput" value="<?php echo htmlspecialchars($albaran['nombreCentro'] ?? ''); ?>" placeholder="Seleccione primero un cliente..." readonly required>
+                        <button type="button" id="btnBuscarCentro" class="btn-secundario btn-icono" onclick="abrirModal('modalCentros')" <?php echo empty($albaran['idCliente']) ? 'disabled' : ''; ?>>
                             <i class="fa-solid fa-location-dot"></i> Buscar
                         </button>
                     </div>
@@ -71,7 +81,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
             </div>
             <div class="form-group">
                 <label>Observaciones</label>
-                <textarea name="observaciones" rows="2" placeholder="Añade notas o indicaciones aquí..."><?php echo $esEdicion ? htmlspecialchars($albaran['observaciones']) : ''; ?></textarea>
+                <textarea name="observaciones" rows="2" placeholder="Añade notas o indicaciones aquí..."><?php echo htmlspecialchars($albaran['observaciones'] ?? ''); ?></textarea>
             </div>
         </fieldset>
 
@@ -100,57 +110,77 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 </thead>
                 <tbody id="cuerpo-lineas-albaran">
                     <?php
-                    $contadorL = 0;
-                    if ($esEdicion && !empty($lineas)):
-                        foreach ($lineas as $l):
-                            $contadorL++;
+                    $maxIdFila = 0; // Para saber por dónde tiene que seguir contando el JS
+
+                    if (!empty($lineas)):
+                        foreach ($lineas as $idFila => $l):
+                            // Si $idFila es un string numérico o un int (viene del POST o es nuevo DB loop), lo respetamos
+                            $idFila = is_numeric($idFila) ? (int)$idFila : ++$maxIdFila;
+                            if ($idFila > $maxIdFila) {
+                                $maxIdFila = $idFila;
+                            }
+
+                            // Rescatamos el nombre si viene del POST o si viene directo de la BD
+                            $nombreEmpleadoMostrado = $l['empNombreCompleto'] ?? trim(($l['empNombre'] ?? '') . ' ' . ($l['empApellido'] ?? ''));
 
                             $nombreVehiculoCargado = '';
                             if (!empty($l['vehiculoUtilizado'])) {
+                                // Buscamos por la columna 'denominacion' que es la que usamos como ID
                                 foreach ($vehiculos_precio_hora as $veh) {
-                                    $idVehActual = $veh['id'] ?? $veh['idArticulo'] ?? $veh['codigo'] ?? 0;
-                                    if ($idVehActual == $l['vehiculoUtilizado']) {
+                                    // Comparamos el valor guardado ($l['vehiculoUtilizado']) con la denominación del catálogo
+                                    if (trim($veh['denominacion']) == trim($l['vehiculoUtilizado'])) {
                                         $nombreVehiculoCargado = htmlspecialchars($veh['denominacion']);
                                         break;
                                     }
                                 }
                             }
 
-                            // Comprobamos si la categoría guardada es "maquinista"
                             $esMaq = (strtolower($l['categoriaProfesional'] ?? '') === 'maquinista');
+                            $tieneError = isset($erroresLineas[$idFila]);
                     ?>
-                            <tr id="linea_<?php echo $contadorL; ?>">
+                            <!-- Aplicamos clase roja si la fila tiene error -->
+                            <tr id="linea_<?php echo $idFila; ?>" class="<?php echo $tieneError ? 'fila-error' : ''; ?>">
                                 <td>
-                                    <input type="hidden" name="lineas[<?php echo $contadorL; ?>][idEmpleado]" value="<?php echo $l['idEmpleado']; ?>">
-                                    <strong><?php echo htmlspecialchars($l['empNombre'] . ' ' . $l['empApellido']); ?></strong>
+                                    <input type="hidden" name="lineas[<?php echo $idFila; ?>][idEmpleado]" value="<?php echo $l['idEmpleado']; ?>">
+                                    <input type="hidden" name="lineas[<?php echo $idFila; ?>][empNombreCompleto]" value="<?php echo htmlspecialchars($nombreEmpleadoMostrado); ?>">
+                                    <strong><?php echo htmlspecialchars($nombreEmpleadoMostrado); ?></strong>
                                 </td>
-                                <td><input type="time" name="lineas[<?php echo $contadorL; ?>][horaDesde]" value="<?php echo substr($l['horaDesde'], 0, 5); ?>" required></td>
-                                <td><input type="time" name="lineas[<?php echo $contadorL; ?>][horaHasta]" value="<?php echo substr($l['horaHasta'], 0, 5); ?>" required></td>
+                                <td><input type="time" name="lineas[<?php echo $idFila; ?>][horaDesde]" value="<?php echo substr($l['horaDesde'], 0, 5); ?>" required></td>
+                                <td><input type="time" name="lineas[<?php echo $idFila; ?>][horaHasta]" value="<?php echo substr($l['horaHasta'], 0, 5); ?>" required></td>
 
-                                <!-- NUEVO SELECTOR DE CATEGORÍA POR MODAL -->
                                 <td>
                                     <div class="input-con-boton">
-                                        <input type="text" name="lineas[<?php echo $contadorL; ?>][categoriaProfesional]" id="categoria_nombre_<?php echo $contadorL; ?>" value="<?php echo htmlspecialchars($l['categoriaProfesional']); ?>" readonly required placeholder="Categoría..." style="min-width: 120px;">
-                                        <button type="button" class="btn-secundario btn-icono" onclick="abrirModalCategoria(<?php echo $contadorL; ?>)" style="padding: 10px;">
+                                        <input type="text" name="lineas[<?php echo $idFila; ?>][categoriaProfesional]" id="categoria_nombre_<?php echo $idFila; ?>" value="<?php echo htmlspecialchars($l['categoriaProfesional']); ?>" readonly required placeholder="Categoría..." style="min-width: 120px;">
+                                        <button type="button" class="btn-secundario btn-icono" onclick="abrirModalCategoria(<?php echo $idFila; ?>)" style="padding: 10px;">
                                             <i class="fa-solid fa-list"></i>
                                         </button>
                                     </div>
                                 </td>
 
                                 <td>
-                                    <div class="input-con-boton" id="vehiculo_container_<?php echo $contadorL; ?>" style="<?php echo $esMaq ? 'display:flex;' : 'display:none;'; ?>">
-                                        <input type="hidden" name="lineas[<?php echo $contadorL; ?>][vehiculoUtilizado]" id="vehiculo_id_<?php echo $contadorL; ?>" value="<?php echo $l['vehiculoUtilizado']; ?>">
-                                        <input type="text" id="vehiculo_nombre_<?php echo $contadorL; ?>" value="<?php echo $nombreVehiculoCargado; ?>" readonly placeholder="Vehículo..." style="min-width: 100px;" <?php echo $esMaq ? 'required' : ''; ?>>
-                                        <button type="button" class="btn-secundario btn-icono" onclick="abrirModalVehiculo(<?php echo $contadorL; ?>)" style="padding: 10px;">
+                                    <div class="input-con-boton" id="vehiculo_container_<?php echo $idFila; ?>" style="<?php echo $esMaq ? 'display:flex;' : 'display:none;'; ?>">
+                                        <input type="hidden" name="lineas[<?php echo $idFila; ?>][vehiculoUtilizado]" id="vehiculo_id_<?php echo $idFila; ?>" value="<?php echo htmlspecialchars($l['vehiculoUtilizado'] ?? ''); ?>">
+                                        <input type="text" id="vehiculo_nombre_<?php echo $idFila; ?>" value="<?php echo $nombreVehiculoCargado; ?>" readonly placeholder="Vehículo..." style="min-width: 100px;" <?php echo $esMaq ? 'required' : ''; ?>>
+                                        <button type="button" class="btn-secundario btn-icono" onclick="abrirModalVehiculo(<?php echo $idFila; ?>)" style="padding: 10px;">
                                             <i class="fa-solid fa-truck"></i>
                                         </button>
                                     </div>
                                 </td>
-                                <td><input type="number" step="0.01" name="lineas[<?php echo $contadorL; ?>][importe]" value="<?php echo $l['importe']; ?>" placeholder="0.00" style="width: 100px;"></td>
+                                <td><input type="number" step="0.01" name="lineas[<?php echo $idFila; ?>][importe]" value="<?php echo htmlspecialchars($l['importe'] ?? ''); ?>" placeholder="0.00" style="width: 100px;"></td>
                                 <td style="text-align:center;">
-                                    <button type="button" class="btn-sm btn-eliminar" onclick="eliminarLinea(<?php echo $contadorL; ?>)"><i class="fa-solid fa-trash"></i></button>
+                                    <button type="button" class="btn-sm btn-eliminar" onclick="eliminarLinea(<?php echo $idFila; ?>)"><i class="fa-solid fa-trash"></i></button>
                                 </td>
                             </tr>
+
+                            <!-- INYECCIÓN DEL MENSAJE DE ERROR -->
+                            <?php if ($tieneError): ?>
+                                <tr class="fila-error-mensaje" id="error_linea_<?php echo $idFila; ?>">
+                                    <td colspan="7">
+                                        <i class="fa-solid fa-circle-exclamation"></i> <?php echo $erroresLineas[$idFila]; ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+
                     <?php
                         endforeach;
                     endif;
@@ -181,7 +211,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- OPCIÓN EXTRA REQUERIDA (Maquinista) -->
                     <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
                         <td>
                             <strong>Maquinista</strong>
@@ -192,7 +221,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                         </td>
                     </tr>
 
-                    <!-- PUESTOS DESDE LA BASE DE DATOS -->
                     <?php if (!empty($puestos)): foreach ($puestos as $puesto): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($puesto['descripcion']); ?></td>
@@ -251,7 +279,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     </tr>
                 </thead>
                 <tbody id="cuerpo-tabla-centros">
-                    <?php if ($esEdicion && !empty($centros_actuales)): foreach ($centros_actuales as $cen): ?>
+                    <?php if (!empty($centros_actuales)): foreach ($centros_actuales as $cen): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($cen['denominacion']); ?></td>
                                 <td style="text-align: center;">
@@ -314,16 +342,20 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 </thead>
                 <tbody>
                     <?php if (!empty($vehiculos_precio_hora)): foreach ($vehiculos_precio_hora as $veh):
-                            $idVeh = $veh['id'] ?? $veh['idArticulo'] ?? $veh['codigo'] ?? 0;
+                            // Capturamos la denominación limpiamente
+                            $denominacion = htmlspecialchars($veh['denominacion']);
+                            $denominacionJs = htmlspecialchars(addslashes($veh['denominacion']));
+
                             $prefijo = isset($veh['prefijo_tipo']) ? htmlspecialchars($veh['prefijo_tipo']) : 'VEHÍCULO';
                             $precioH = isset($veh['precio_hora_extraido']) ? number_format((float)$veh['precio_hora_extraido'], 2, ',', '.') . ' €' : 'N/A';
                     ?>
                             <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td><strong><?php echo htmlspecialchars($veh['denominacion']); ?></strong></td>
+                                <td><strong><?php echo $denominacion; ?></strong></td>
                                 <td style="text-align: center;"><span style="background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: #475569; font-weight: bold;"><?php echo $prefijo; ?></span></td>
                                 <td style="text-align: center; color: #0f4c81; font-weight: bold;"><?php echo $precioH; ?></td>
                                 <td style="text-align: center;">
-                                    <button type="button" class="btn-sm btn-editar" onclick="seleccionarVehiculo(<?php echo $idVeh; ?>, '<?php echo htmlspecialchars(addslashes($veh['denominacion'])); ?>')">Seleccionar</button>
+                                    <!-- SOLUCIÓN: Pasamos la denominación dos veces (como valor interno y como texto visual) -->
+                                    <button type="button" class="btn-sm btn-editar" onclick="seleccionarVehiculo('<?php echo $denominacionJs; ?>', '<?php echo $denominacionJs; ?>')">Seleccionar</button>
                                 </td>
                             </tr>
                     <?php endforeach;
@@ -340,29 +372,19 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
 <!-- ========================================== -->
 <script>
     const tbodyLineas = document.getElementById('cuerpo-lineas-albaran');
-    let contadorLineas = <?php echo isset($contadorL) ? $contadorL : 0; ?>;
-    
+    let contadorLineas = <?php echo isset($maxIdFila) && $maxIdFila > 0 ? $maxIdFila : 0; ?>;
+
     let filaVehiculoActiva = null;
     let filaCategoriaActiva = null;
 
-    // --- Objetos de Precios ---
-    const preciosPuestos = {
-        <?php foreach ($puestos as $p): ?> 
-            "<?php echo addslashes($p['descripcion']); ?>": <?php echo (float)($p['precioHora'] ?? 0); ?>,
-        <?php endforeach; ?>
-    };
+    function abrirModal(idModal) {
+        document.getElementById(idModal).style.display = 'flex';
+    }
 
-    const preciosVehiculos = {
-        <?php foreach ($vehiculos_precio_hora as $v):
-            $idVeh = $v['id'] ?? $v['idArticulo'] ?? $v['codigo'] ?? 0;
-        ?> 
-            "<?php echo $idVeh; ?>": <?php echo (float)($v['precio_hora_extraido'] ?? 0); ?>,
-        <?php endforeach; ?>
-    };
+    function cerrarModal(idModal) {
+        document.getElementById(idModal).style.display = 'none';
+    }
 
-    // --- Modales ---
-    function abrirModal(idModal) { document.getElementById(idModal).style.display = 'flex'; }
-    function cerrarModal(idModal) { document.getElementById(idModal).style.display = 'none'; }
 
     // --- Lógica Clientes/Centros ---
     function seleccionarCliente(id, nombre) {
@@ -379,16 +401,19 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         const btnCentro = document.getElementById('btnBuscarCentro');
         btnCentro.disabled = false;
         tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Cargando centros...</td></tr>';
-        
+
         fetch(`/index.php?controller=albaran&action=obtenerCentrosPorCliente&idCliente=${idCliente}`)
             .then(async response => {
-                if (!response.ok) throw new Error('Error en el servidor');
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Error desconocido del servidor');
+                }
                 return response.json();
             })
             .then(data => {
                 tbody.innerHTML = '';
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No hay centros asignados.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No hay centros asignados a este cliente.</td></tr>';
                     return;
                 }
                 data.forEach(centro => {
@@ -400,6 +425,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                             <td style="text-align: center;"><button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(${centro.id}, '${nombreSeguro}')">Seleccionar</button></td>
                         </tr>`;
                 });
+            }).catch(error => {
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color: #b91c1c; font-weight: bold;">Error: ${error.message}</td></tr>`;
             });
     }
 
@@ -418,20 +445,21 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
     function seleccionarCategoria(nombreCategoria, esMaquinista) {
         if (filaCategoriaActiva !== null) {
             document.getElementById('categoria_nombre_' + filaCategoriaActiva).value = nombreCategoria;
-            
+
             const contenedorVehiculo = document.getElementById('vehiculo_container_' + filaCategoriaActiva);
+            const inputVehiculoId = document.getElementById('vehiculo_id_' + filaCategoriaActiva);
             const inputVehiculoNombre = document.getElementById('vehiculo_nombre_' + filaCategoriaActiva);
-            
-            if (esMaquinista) {
+
+            if (esMaquinista || nombreCategoria.toLowerCase() === 'maquinista') {
                 contenedorVehiculo.style.display = 'flex';
                 inputVehiculoNombre.required = true;
             } else {
                 contenedorVehiculo.style.display = 'none';
                 inputVehiculoNombre.required = false;
-                document.getElementById('vehiculo_id_' + filaCategoriaActiva).value = '';
+                inputVehiculoId.value = '';
                 inputVehiculoNombre.value = '';
             }
-            
+
             calcularImporte(filaCategoriaActiva);
             cerrarModal('modalCategorias');
             filaCategoriaActiva = null;
@@ -450,58 +478,86 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
             document.getElementById('vehiculo_nombre_' + filaVehiculoActiva).value = nombre;
             calcularImporte(filaVehiculoActiva);
             cerrarModal('modalVehiculos');
-            filaVehiculoActiva = null; 
+            filaVehiculoActiva = null;
         }
     }
 
-    // --- Cálculo Automático ---
-    function calcularImporte(idFila) {
-        const inputPuesto = document.getElementById('categoria_nombre_' + idFila).value;
-        const inputVehiculoId = document.getElementById('vehiculo_id_' + idFila).value;
-        const inputImporte = document.querySelector(`input[name="lineas[${idFila}][importe]"]`);
-        
-        let importe = 0;
-
-        if (inputPuesto.toLowerCase() === 'maquinista' && inputVehiculoId) {
-            importe = preciosVehiculos[inputVehiculoId] || 0;
-        } else if (preciosPuestos[inputPuesto]) {
-            importe = preciosPuestos[inputPuesto];
-        }
-        inputImporte.value = parseFloat(importe).toFixed(2);
-    }
-
-    // --- Gestión de Filas ---
+    // --- Lógica Líneas Empleado ---
     function agregarLineaEmpleado(idEmpleado, nombreEmpleado) {
         contadorLineas++;
         const fila = document.createElement('tr');
         fila.id = 'linea_' + contadorLineas;
+
+        // Se envía un input oculto empNombreCompleto para conservarlo en validaciones de error
         fila.innerHTML = `
-            <td><input type="hidden" name="lineas[${contadorLineas}][idEmpleado]" value="${idEmpleado}"><strong>${nombreEmpleado}</strong></td>
+            <td>
+                <input type="hidden" name="lineas[${contadorLineas}][idEmpleado]" value="${idEmpleado}">
+                <input type="hidden" name="lineas[${contadorLineas}][empNombreCompleto]" value="${nombreEmpleado}">
+                <strong>${nombreEmpleado}</strong>
+            </td>
             <td><input type="time" name="lineas[${contadorLineas}][horaDesde]" required></td>
             <td><input type="time" name="lineas[${contadorLineas}][horaHasta]" required></td>
+            
             <td>
                 <div class="input-con-boton">
                     <input type="text" name="lineas[${contadorLineas}][categoriaProfesional]" id="categoria_nombre_${contadorLineas}" readonly required placeholder="Categoría..." style="min-width: 120px;">
-                    <button type="button" class="btn-secundario btn-icono" onclick="abrirModalCategoria(${contadorLineas})" style="padding: 10px;"><i class="fa-solid fa-list"></i></button>
+                    <button type="button" class="btn-secundario btn-icono" onclick="abrirModalCategoria(${contadorLineas})" style="padding: 10px;">
+                        <i class="fa-solid fa-list"></i>
+                    </button>
                 </div>
             </td>
+            
             <td>
                 <div class="input-con-boton" id="vehiculo_container_${contadorLineas}" style="display:none;">
                     <input type="hidden" name="lineas[${contadorLineas}][vehiculoUtilizado]" id="vehiculo_id_${contadorLineas}">
                     <input type="text" id="vehiculo_nombre_${contadorLineas}" readonly placeholder="Vehículo..." style="min-width: 100px;">
-                    <button type="button" class="btn-secundario btn-icono" onclick="abrirModalVehiculo(${contadorLineas})" style="padding: 10px;"><i class="fa-solid fa-truck"></i></button>
+                    <button type="button" class="btn-secundario btn-icono" onclick="abrirModalVehiculo(${contadorLineas})" style="padding: 10px;">
+                        <i class="fa-solid fa-truck"></i>
+                    </button>
                 </div>
             </td>
             <td><input type="number" step="0.01" name="lineas[${contadorLineas}][importe]" placeholder="0.00" style="width: 100px;"></td>
-            <td style="text-align:center;"><button type="button" class="btn-sm btn-eliminar" onclick="eliminarLinea(${contadorLineas})"><i class="fa-solid fa-trash"></i></button></td>
+            <td style="text-align:center;">
+                <button type="button" class="btn-sm btn-eliminar" onclick="eliminarLinea(${contadorLineas})"><i class="fa-solid fa-trash"></i></button>
+            </td>
         `;
+
         tbodyLineas.appendChild(fila);
         cerrarModal('modalEmpleados');
     }
 
     function eliminarLinea(idFila) {
         const fila = document.getElementById('linea_' + idFila);
+        const filaError = document.getElementById('error_linea_' + idFila); // Eliminar también el mensaje de error si existe
         if (fila) fila.remove();
+        if (filaError) filaError.remove();
+    }
+
+    // --- Cálculo ---
+    const preciosPuestos = {
+        <?php foreach ($puestos as $p): ?> "<?php echo addslashes($p['descripcion']); ?>": <?php echo (float)$p['precioHora']; ?>,
+        <?php endforeach; ?>
+    };
+
+    const preciosVehiculos = {
+        <?php foreach ($vehiculos_precio_hora as $v): ?> "<?php echo addslashes($v['denominacion']); ?>": <?php echo (float)($v['precio_hora_extraido'] ?? 0); ?>,
+        <?php endforeach; ?>
+    };
+
+    function calcularImporte(idFila) {
+        const inputPuesto = document.getElementById('categoria_nombre_' + idFila).value;
+        const inputVehiculoId = document.getElementById('vehiculo_id_' + idFila).value;
+        const inputImporte = document.querySelector(`input[name="lineas[${idFila}][importe]"]`);
+
+        let importeCalculado = 0;
+
+        if (inputPuesto.toLowerCase() === 'maquinista' && inputVehiculoId) {
+            importeCalculado = preciosVehiculos[inputVehiculoId] || 0;
+        } else if (preciosPuestos[inputPuesto]) {
+            importeCalculado = preciosPuestos[inputPuesto];
+        }
+
+        inputImporte.value = importeCalculado.toFixed(2);
     }
 </script>
 
@@ -509,6 +565,20 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
 <!-- ESTILOS UNIFICADOS DE FORMULARIO           -->
 <!-- ========================================== -->
 <style>
+    /* Estilos Error Filas (¡NUEVO!) */
+    .fila-error td {
+        background-color: #fef2f2 !important;
+        border-top: 2px solid #ef4444;
+    }
+
+    .fila-error-mensaje td {
+        background-color: #fef2f2;
+        color: #b91c1c;
+        font-weight: bold;
+        padding: 5px 15px;
+        border-bottom: 2px solid #ef4444;
+    }
+
     .formulario-estandar fieldset {
         border: 1px solid #cbd5e1;
         border-radius: 8px;

@@ -1,3 +1,20 @@
+<?php
+// 1. Aseguramos que la sesión está iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+// 2. Rescatamos el error
+$mensaje_error_eliminar = $_SESSION['error_guardado'] ?? null;
+unset($_SESSION['error_guardado']);
+?>
+
+<!-- 3. Pintamos el error si existe -->
+<?php if ($mensaje_error_eliminar): ?>
+    <div class="alerta-error" style="background-color: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid #f87171; margin-bottom: 20px;">
+        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Detalle del Error de Base de Datos:</strong> <br><br>
+        <?php echo htmlspecialchars($mensaje_error_eliminar); ?>
+    </div>
+<?php endif; ?>
 <div class="encabezado-seccion" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
     <h2>Listado de Albaranes</h2>
 
@@ -11,10 +28,10 @@
 <!-- ========================================== -->
 <div class="panel-filtros formulario-estandar" style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
     <form action="/index.php" method="GET" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
-        
+
         <!-- Input oculto para mantener el controlador -->
         <input type="hidden" name="controller" value="albaran">
-        
+
         <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
             <label>Nº Albarán</label>
             <input type="text" name="numAlbaran" value="<?php echo htmlspecialchars($_GET['numAlbaran'] ?? ''); ?>" placeholder="Buscar número...">
@@ -85,13 +102,13 @@
                 <?php foreach ($albaranes as $alb): ?>
                     <tr style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s;">
                         <td style="padding: 12px 15px;"><strong><?php echo htmlspecialchars($alb['numAlbaran']); ?></strong></td>
-                        
+
                         <!-- Formateamos la fecha a formato europeo -->
                         <td style="padding: 12px 15px;"><?php echo date('d/m/Y', strtotime($alb['fecha'])); ?></td>
-                        
+
                         <td style="padding: 12px 15px;"><?php echo htmlspecialchars($alb['nombreCliente']); ?></td>
                         <td style="padding: 12px 15px;"><?php echo htmlspecialchars($alb['nombreCentro']); ?></td>
-                        
+
                         <!-- Botonera de acciones (Ver y Editar) -->
                         <td class="celda-acciones" style="padding: 12px 15px; display: flex; gap: 8px; justify-content: center;">
                             <a href="/index.php?controller=albaran&action=ver&id=<?php echo $alb['id']; ?>" class="btn-secundario" style="text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 0.9rem;" title="Ver Detalle">
@@ -100,7 +117,19 @@
                             <a href="/index.php?controller=albaran&action=editar&id=<?php echo $alb['id']; ?>" class="btn-principal" style="text-decoration: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.9rem; background-color: #0f4c81;" title="Editar Albarán">
                                 <i class="fa-solid fa-pen"></i>
                             </a>
+                            <!-- En tu bucle foreach donde pintas las filas de los albaranes -->
+
+                            <!-- Tus otros botones (Ver, Editar, etc.) -->
+
+                            <!-- NUEVO BOTÓN DE ELIMINAR CON CONFIRMACIÓN -->
+                            <a href="/index.php?controller=albaran&action=eliminar&id=<?php echo $alb['id']; ?>"
+                                class="btn-eliminar"
+                                style="padding: 6px 12px; text-decoration: none;"
+                                onclick="return confirm('¿Estás totalmente seguro de que deseas eliminar este albarán? Esta acción borrará la cabecera y todas sus líneas, y no se puede deshacer.');">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
                         </td>
+
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>

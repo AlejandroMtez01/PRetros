@@ -25,7 +25,6 @@ class AlbaranController
         }
         $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
 
-        // Recogemos los filtros de la URL si existen
         $filtros = [
             'numAlbaran' => $_GET['numAlbaran'] ?? '',
             'idCliente'  => $_GET['idCliente'] ?? '',
@@ -34,11 +33,8 @@ class AlbaranController
             'fechaHasta' => $_GET['fechaHasta'] ?? ''
         ];
 
-        // Listas para el buscador
         $clientes = $this->obtenerClientes($idEmpresaActiva);
         $centros = $this->obtenerCentros($idEmpresaActiva);
-
-        // Albaranes filtrados
         $albaranes = $this->modeloAlbaran->obtenerTodosFiltrados($idEmpresaActiva, $filtros);
 
         $contenido_vista = '../views/albaranes/index.php';
@@ -48,16 +44,17 @@ class AlbaranController
     // ==========================================
     // VISTA PARA CREAR UN ALBARÁN NUEVO
     // ==========================================
-     public function crear() {
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+    public function crear()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
 
-        // Necesitamos estos datos para llenar los modales
         $empleados = $this->modeloEmpleado->obtenerTodos($idEmpresaActiva);
         $clientes = $this->obtenerClientes($idEmpresaActiva);
         $vehiculos_precio_hora = $this->obtenerVehiculosPrecioHora($idEmpresaActiva);
 
-        // EXTRACCIÓN DE PUESTOS PARA EL MODAL
         $sqlPuestos = "SELECT id, descripcion, precioHora FROM Puestos WHERE idEmpresa = ? ORDER BY descripcion ASC";
         $stmtP = $this->conexion->prepare($sqlPuestos);
         if ($stmtP) {
@@ -66,6 +63,25 @@ class AlbaranController
             $puestos = $stmtP->get_result()->fetch_all(MYSQLI_ASSOC);
         } else {
             $puestos = [];
+        }
+
+        // RECUPERAR DATOS SI HUBO UN ERROR AL GUARDAR
+        $albaran = [];
+        $lineas = [];
+        $erroresLineas = $_SESSION['errores_lineas'] ?? [];
+
+        if (isset($_SESSION['datos_pendientes'])) {
+            $datosPost = $_SESSION['datos_pendientes'];
+            $albaran['numAlbaran'] = $datosPost['numAlbaran'] ?? '';
+            $albaran['fecha'] = $datosPost['fecha'] ?? '';
+            $albaran['idCliente'] = $datosPost['idCliente'] ?? '';
+            $albaran['idCentro'] = $datosPost['idCentro'] ?? '';
+            $albaran['observaciones'] = $datosPost['observaciones'] ?? '';
+            $albaran['nombreCliente'] = $datosPost['nombreCliente'] ?? '';
+            $albaran['nombreCentro'] = $datosPost['nombreCentro'] ?? '';
+
+            $lineas = $datosPost['lineas'] ?? [];
+            unset($_SESSION['datos_pendientes'], $_SESSION['errores_lineas']);
         }
 
         $contenido_vista = '../views/albaranes/formulario.php';
@@ -81,15 +97,9 @@ class AlbaranController
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
-
             $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
             $idUsuarioActivo = $_SESSION['usuario_id'] ?? 0;
 
-            // Generamos un número de albarán automático (Ejemplo: ALB-20260717-101119)
-            // Puedes cambiar esto si en tu empresa llevan otra numeración
-            //$numAlbaranAutogenerado = 'ALB-' . date('Ymd-His');
-
-            // Preparamos los datos de la cabecera
             $cabecera = [
                 'numAlbaran'    => $_POST['numAlbaran'],
                 'idCliente'     => intval($_POST['idCliente']),
@@ -99,94 +109,33 @@ class AlbaranController
                 'idUsuario'     => $idUsuarioActivo,
                 'idEmpresa'     => $idEmpresaActiva
             ];
-
-            // Recogemos el array de líneas que envió JavaScript. Si no hay, asignamos array vacío.
             $lineas = isset($_POST['lineas']) ? $_POST['lineas'] : [];
 
-            // Mandamos todo al modelo para que haga la transacción
+            // En crear no hay idAlbaran previo, así que pasamos un 0
+            $erroresLineas = $this->validarLineas($lineas, $_POST['fecha'], 0);
+
+            if (!empty($erroresLineas)) {
+                // Hay errores: Devolvemos todo a la vista para no perder la información
+                $_SESSION['errores_lineas'] = $erroresLineas;
+                $_SESSION['datos_pendientes'] = $_POST;
+                $_SESSION['error_guardado'] = "Hay errores en las líneas. Por favor, revísalas.";
+                header("Location: /index.php?controller=albaran&action=crear");
+                exit;
+            }
+
+            // Si llegamos aquí, las validaciones pasaron
             $resultado = $this->modeloAlbaran->guardarAlbaranCompleto($cabecera, $lineas);
             if ($resultado === true) {
                 header("Location: /index.php?controller=albaran");
             } else {
-                session_start();
-                $_SESSION['error_guardado'] = $resultado; // "Cantamos" el error exacto
+                $_SESSION['error_guardado'] = "Error BD: " . $resultado;
+                $_SESSION['datos_pendientes'] = $_POST;
                 header("Location: /index.php?controller=albaran&action=crear");
             }
-        }
-    }
-
-    // ==========================================
-    // MÉTODOS AUXILIARES DE CONSULTA INTERNA
-    // ==========================================
-    private function obtenerClientes($idEmpresa)
-    {
-        $sql = "SELECT id, razonSocial FROM Clientes WHERE idEmpresa = ? ORDER BY razonSocial ASC";
-        $stmt = $this->conexion->prepare($sql);
-        if ($stmt) {
-            $stmt->bind_param("i", $idEmpresa);
-            $stmt->execute();
-            return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        }
-        return [];
-    }
-
-    private function obtenerCentros($idEmpresa)
-    {
-        $sql = "SELECT id, direccion FROM CentrosCliente WHERE idEmpresa = ? ORDER BY direccion ASC";
-        $stmt = $this->conexion->prepare($sql);
-        if ($stmt) {
-            $stmt->bind_param("i", $idEmpresa);
-            $stmt->execute();
-            return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        }
-        return [];
-    }
-    public function obtenerCentrosPorCliente()
-    {
-        // Asegúrate de que el ID llega por GET
-        $idCliente = $_GET['idCliente'] ?? 0;
-
-        $sql = "SELECT id, direccion FROM CentrosCliente WHERE idCliente = ? ORDER BY direccion ASC";
-        $stmt = $this->conexion->prepare($sql);
-
-        if ($stmt) {
-            $stmt->bind_param("i", $idCliente);
-            $stmt->execute();
-            $resultado = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
-            // Es vital enviar esto como JSON para que el fetch lo entienda
-            header('Content-Type: application/json');
-            echo json_encode($resultado);
             exit;
         }
-        echo json_encode([]);
-        exit;
     }
 
-    private function obtenerVehiculosPrecioHora($idEmpresa) {
-        // Añadimos prefijo_tipo y datos_dinamicos a la consulta
-        $sql = "SELECT prefijo_tipo, denominacion,  datos_dinamicos 
-                FROM Inventario 
-                WHERE idEmpresa = ? 
-                AND datos_dinamicos LIKE '%\"precio_hora\"%' 
-                ORDER BY denominacion ASC";
-                
-        $stmt = $this->conexion->prepare($sql);
-        if ($stmt) {
-            $stmt->bind_param("i", $idEmpresa);
-            $stmt->execute();
-            $vehiculos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            
-            // Decodificamos el JSON para sacar el precio_hora fácilmente a la vista
-            foreach ($vehiculos as &$veh) {
-                $datosJson = json_decode($veh['datos_dinamicos'], true);
-                $veh['precio_hora_extraido'] = isset($datosJson['precio_hora']) ? $datosJson['precio_hora'] : 0;
-            }
-            
-            return $vehiculos;
-        }
-        return [];
-    }
     // ==========================================
     // VISTA DE SOLO LECTURA
     // ==========================================
@@ -213,20 +162,14 @@ class AlbaranController
     // ==========================================
     // VISTA PARA EDITAR
     // ==========================================
-   // ==========================================
-    // VISTA PARA CREAR UN ALBARÁN NUEVO
-    // ==========================================
-   
-
-    // ==========================================
-    // VISTA PARA EDITAR
-    // ==========================================
-    public function editar() {
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+    public function editar()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
         $idAlbaran = intval($_GET['id'] ?? 0);
 
-        // Rescatamos los datos actuales
         $albaran = $this->modeloAlbaran->obtenerPorId($idAlbaran, $idEmpresaActiva);
         if (!$albaran) {
             header("Location: /index.php?controller=albaran");
@@ -234,12 +177,10 @@ class AlbaranController
         }
         $lineas = $this->modeloAlbaran->obtenerLineas($idAlbaran, $idEmpresaActiva);
 
-        // Listas auxiliares para los modales
         $empleados = $this->modeloEmpleado->obtenerTodos($idEmpresaActiva);
         $clientes = $this->obtenerClientes($idEmpresaActiva);
         $vehiculos_precio_hora = $this->obtenerVehiculosPrecioHora($idEmpresaActiva);
 
-        // Cargamos los centros específicos del cliente seleccionado actualmente
         $sqlCentros = "SELECT id, direccion as denominacion FROM CentrosCliente WHERE idCliente = ?";
         $stmtC = $this->conexion->prepare($sqlCentros);
         if ($stmtC) {
@@ -250,7 +191,6 @@ class AlbaranController
             $centros_actuales = [];
         }
 
-        // EXTRACCIÓN DE PUESTOS PARA EL MODAL
         $sqlPuestos = "SELECT id, descripcion, precioHora FROM Puestos WHERE idEmpresa = ? ORDER BY descripcion ASC";
         $stmtP = $this->conexion->prepare($sqlPuestos);
         if ($stmtP) {
@@ -259,6 +199,22 @@ class AlbaranController
             $puestos = $stmtP->get_result()->fetch_all(MYSQLI_ASSOC);
         } else {
             $puestos = [];
+        }
+
+        // RECUPERAR DATOS SI HUBO UN ERROR AL ACTUALIZAR
+        $erroresLineas = $_SESSION['errores_lineas'] ?? [];
+        if (isset($_SESSION['datos_pendientes'])) {
+            $datosPost = $_SESSION['datos_pendientes'];
+            $albaran['numAlbaran'] = $datosPost['numAlbaran'] ?? $albaran['numAlbaran'];
+            $albaran['fecha'] = $datosPost['fecha'] ?? $albaran['fecha'];
+            $albaran['idCliente'] = $datosPost['idCliente'] ?? $albaran['idCliente'];
+            $albaran['idCentro'] = $datosPost['idCentro'] ?? $albaran['idCentro'];
+            $albaran['observaciones'] = $datosPost['observaciones'] ?? $albaran['observaciones'];
+            $albaran['nombreCliente'] = $datosPost['nombreCliente'] ?? $albaran['nombreCliente'];
+            $albaran['nombreCentro'] = $datosPost['nombreCentro'] ?? $albaran['nombreCentro'];
+
+            $lineas = $datosPost['lineas'] ?? [];
+            unset($_SESSION['datos_pendientes'], $_SESSION['errores_lineas']);
         }
 
         $contenido_vista = '../views/albaranes/formulario.php';
@@ -287,18 +243,240 @@ class AlbaranController
                 'idUsuario'     => $idUsuarioActivo,
                 'idEmpresa'     => $idEmpresaActiva
             ];
-
             $lineas = isset($_POST['lineas']) ? $_POST['lineas'] : [];
+
+            // En crear no hay idAlbaran previo, así que pasamos un 0
+            $erroresLineas = $this->validarLineas($lineas, $_POST['fecha'], $idAlbaran);
+
+
+            if (!empty($erroresLineas)) {
+                $_SESSION['errores_lineas'] = $erroresLineas;
+                $_SESSION['datos_pendientes'] = $_POST;
+                $_SESSION['error_guardado'] = "Hay errores en las líneas. Por favor, revísalas.";
+                header("Location: /index.php?controller=albaran&action=editar&id=" . $idAlbaran);
+                exit;
+            }
 
             $resultado = $this->modeloAlbaran->actualizarAlbaranCompleto($idAlbaran, $cabecera, $lineas);
 
             if ($resultado === true) {
                 header("Location: /index.php?controller=albaran");
             } else {
-                $_SESSION['error_guardado'] = $resultado;
+                $_SESSION['error_guardado'] = "Error BD: " . $resultado;
+                $_SESSION['datos_pendientes'] = $_POST;
                 header("Location: /index.php?controller=albaran&action=editar&id=" . $idAlbaran);
             }
             exit;
         }
     }
-}
+
+
+    // ==========================================
+    // MÉTODO EXTERNALIZADO DE VALIDACIÓN
+    // ==========================================
+    private function validarLineas($lineas, $fecha, $idAlbaranActual = 0)
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
+
+        $erroresLineas = [];
+        $empleadosEnMemoria = []; // Controla los horarios dentro del propio formulario
+
+
+
+        foreach ($lineas as $i => $l) {
+            // 1. Validación de Horario
+            if (empty($l['horaDesde']) || empty($l['horaHasta'])) {
+                $erroresLineas[$i] = "Las horas de inicio y fin son obligatorias.";
+                continue;
+            }
+            if (strtotime($l['horaHasta']) <= strtotime($l['horaDesde'])) {
+                $erroresLineas[$i] = "La hora 'Hasta' debe ser mayor a la hora 'Desde'.";
+                continue;
+            }
+
+            // 2. Validación de Categoría/Puesto
+            if (empty($l['categoriaProfesional'])) {
+                $erroresLineas[$i] = "Debe seleccionar una Categoría o Puesto.";
+                continue;
+            }
+
+            // 3. Validación específica para Maquinistas
+            if (strtolower(trim($l['categoriaProfesional'])) === 'maquinista' && empty($l['vehiculoUtilizado'])) {
+                $erroresLineas[$i] = "Un maquinista debe tener un vehículo asociado obligatoriamente.";
+                continue;
+            }
+
+            // 4. Validación de Importe Económico
+            if (!isset($l['importe']) || !is_numeric($l['importe']) || $l['importe'] < 0) {
+                $erroresLineas[$i] = "El importe debe ser un valor numérico válido mayor o igual a 0.";
+                continue;
+            }
+
+            // 5. VALIDACIÓN DE SOLAPAMIENTO DE EMPLEADO
+            $idEmp = $l['idEmpleado'];
+            $horaDesdeStr = substr($l['horaDesde'], 0, 5); // Formato HH:MM
+            $horaHastaStr = substr($l['horaHasta'], 0, 5);
+            $horaDesdeTs = strtotime($horaDesdeStr);
+            $horaHastaTs = strtotime($horaHastaStr);
+
+            // Consulta preparada para comprobar si el empleado ya está en otro albarán en ese tramo
+            // La lógica de solapamiento es: (InicioExistente < FinNuevo) AND (FinExistente > InicioNuevo)
+            $sqlSolapamiento = "SELECT a.numAlbaran 
+                            FROM lineasAlbaran la 
+                            INNER JOIN Albaranes a ON la.idAlbaran = a.id 
+                            WHERE la.idEmpleado = ? 
+                            AND a.fecha = ? 
+                            AND a.idEmpresa = ? 
+                            AND la.horaDesde < ? 
+                            AND la.horaHasta > ? 
+                            AND a.id != ?";
+
+            $stmtSolapamiento = $this->conexion->prepare($sqlSolapamiento);
+
+            // 5.1 Solapamiento dentro del mismo formulario (antes de tocar la BD)
+            $solapamientoInterno = false;
+            if (isset($empleadosEnMemoria[$idEmp])) {
+                foreach ($empleadosEnMemoria[$idEmp] as $tramo) {
+                    if ($horaDesdeTs < $tramo['hasta'] && $horaHastaTs > $tramo['desde']) {
+                        $erroresLineas[$i] = "Horario solapado con otra línea de este mismo albarán.";
+                        $solapamientoInterno = true;
+                        break;
+                    }
+                }
+            }
+            if ($solapamientoInterno) {
+                continue; // Ya detectamos error, pasamos a la siguiente línea
+            }
+
+            // Guardamos el tramo en memoria para comprobar las siguientes líneas del formulario
+            $empleadosEnMemoria[$idEmp][] = ['desde' => $horaDesdeTs, 'hasta' => $horaHastaTs];
+
+            // 5.2 Solapamiento en Base de Datos (en otros albaranes)
+            if ($stmtSolapamiento && !empty($idEmp)) {
+                // Pasamos: idEmpleado, fecha, idEmpresa, horaHastaNueva, horaDesdeNueva, idAlbaranActual
+                $stmtSolapamiento->bind_param(
+                    "isissi",
+                    $idEmp,
+                    $fecha,
+                    $idEmpresaActiva,
+                    $horaHastaStr,
+                    $horaDesdeStr,
+                    $idAlbaranActual
+                );
+
+                $stmtSolapamiento->execute();
+                $resultadoSolapamiento = $stmtSolapamiento->get_result();
+
+                if ($resultadoSolapamiento->num_rows > 0) {
+                    $albaranConflicto = $resultadoSolapamiento->fetch_assoc();
+                    $erroresLineas[$i] = "El empleado ya está trabajando en ese horario (Albarán " . htmlspecialchars($albaranConflicto['numAlbaran']) . ").";
+                    continue;
+                }
+            }
+        }
+
+        return $erroresLineas;
+    }
+
+
+    // ==========================================
+    // MÉTODOS AUXILIARES DE CONSULTA INTERNA
+    // ==========================================
+    private function obtenerClientes($idEmpresa)
+    {
+        $sql = "SELECT id, razonSocial FROM Clientes WHERE idEmpresa = ? ORDER BY razonSocial ASC";
+        $stmt = $this->conexion->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $idEmpresa);
+            $stmt->execute();
+            return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        }
+        return [];
+    }
+
+    private function obtenerCentros($idEmpresa)
+    {
+        $sql = "SELECT id, direccion FROM CentrosCliente WHERE idEmpresa = ? ORDER BY direccion ASC";
+        $stmt = $this->conexion->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $idEmpresa);
+            $stmt->execute();
+            return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        }
+        return [];
+    }
+
+    public function obtenerCentrosPorCliente()
+    {
+        $idCliente = $_GET['idCliente'] ?? 0;
+        $sql = "SELECT id, direccion FROM CentrosCliente WHERE idCliente = ? ORDER BY direccion ASC";
+        $stmt = $this->conexion->prepare($sql);
+
+        if ($stmt) {
+            $stmt->bind_param("i", $idCliente);
+            $stmt->execute();
+            $resultado = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            header('Content-Type: application/json');
+            echo json_encode($resultado);
+            exit;
+        }
+        echo json_encode([]);
+        exit;
+    }
+
+    private function obtenerVehiculosPrecioHora($idEmpresa)
+    {
+        // SOLUCIÓN: Hemos añadido el campo 'id' al inicio del SELECT
+        $sql = "SELECT prefijo_tipo, denominacion, datos_dinamicos 
+                FROM Inventario 
+                WHERE idEmpresa = ? 
+                AND datos_dinamicos LIKE '%\"precio_hora\"%' 
+                ORDER BY denominacion ASC";
+
+        $stmt = $this->conexion->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $idEmpresa);
+            $stmt->execute();
+            $vehiculos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+            foreach ($vehiculos as &$veh) {
+                $datosJson = json_decode($veh['datos_dinamicos'], true);
+                $veh['precio_hora_extraido'] = isset($datosJson['precio_hora']) ? $datosJson['precio_hora'] : 0;
+            }
+            return $vehiculos;
+        }
+        return [];
+    }
+
+    // ==========================================
+    // ELIMINAR ALBARÁN COMPLETO (CON MODO ESTRICTO DE ERRORES)
+    // ==========================================
+   // ==========================================
+    // ELIMINAR ALBARÁN (CONTROLADOR)
+    // ==========================================
+    public function eliminar()
+    {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
+        
+        // Recogemos el ID de la URL
+        $idAlbaran = intval($_GET['id'] ?? 0);
+
+        if ($idAlbaran > 0) {
+            // Llamamos al Modelo para que haga el trabajo sucio
+            $resultado = $this->modeloAlbaran->eliminar($idAlbaran, $idEmpresaActiva);
+            
+            if ($resultado !== true) {
+                $_SESSION['error_guardado'] = "Error al eliminar el albarán: " . $resultado;
+            }
+        }
+        
+        // Redirigimos al listado principal
+        header("Location: /index.php?controller=albaran");
+        exit;
+    }
+} // <-- Fin de la clase AlbaranController
+

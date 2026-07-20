@@ -1,21 +1,24 @@
 <?php
-class Albaran {
+class Albaran
+{
     private $conexion;
 
-    public function __construct(mysqli $conexion) {
+    public function __construct(mysqli $conexion)
+    {
         $this->conexion = $conexion;
     }
 
     // ====================================================
     // OBTENER ALBARANES (CON FILTROS ENCADENADOS)
     // ====================================================
-    public function obtenerTodosFiltrados($idEmpresa, $filtros) {
+    public function obtenerTodosFiltrados($idEmpresa, $filtros)
+    {
         $sql = "SELECT a.*, c.razonSocial as nombreCliente, ce.direccion as nombreCentro 
                 FROM Albaranes a
                 LEFT JOIN Clientes c ON a.idCliente = c.id
                 LEFT JOIN CentrosCliente ce ON a.idCentro = ce.id
                 WHERE a.idEmpresa = ?";
-        
+
         $tipos = "i";
         $valores = [$idEmpresa];
 
@@ -24,7 +27,7 @@ class Albaran {
             $tipos .= "s";
             $valores[] = "%" . $filtros['numAlbaran'] . "%";
         }
-        
+
         if (!empty($filtros['idCliente'])) {
             $sql .= " AND a.idCliente = ?";
             $tipos .= "i";
@@ -52,7 +55,7 @@ class Albaran {
         $sql .= " ORDER BY a.fecha DESC, a.numAlbaran DESC";
 
         $stmt = $this->conexion->prepare($sql);
-        
+
         if ($stmt) {
             $stmt->bind_param($tipos, ...$valores);
             $stmt->execute();
@@ -66,7 +69,13 @@ class Albaran {
     // ====================================================
     // GUARDAR ALBARÁN Y SUS LÍNEAS (TRANSACCIÓN)
     // ====================================================
-    public function guardarAlbaranCompleto($cabecera, $lineas) {
+    public function guardarAlbaranCompleto($cabecera, $lineas)
+    {
+
+       
+
+
+
         // Iniciamos transacción para que no se guarde el albarán si fallan las líneas
         $this->conexion->begin_transaction();
 
@@ -74,19 +83,20 @@ class Albaran {
             // 1. Insertamos la Cabecera del Albarán
             $sqlCabecera = "INSERT INTO Albaranes (numAlbaran, idCliente, observaciones, idCentro, fecha, idUsuario, idEmpresa) 
                             VALUES (?, ?, ?, ?, ?, ?, ?)";
-            
+
             $stmtCabecera = $this->conexion->prepare($sqlCabecera);
-            $stmtCabecera->bind_param("sisssii", 
-                $cabecera['numAlbaran'], 
-                $cabecera['idCliente'], 
-                $cabecera['observaciones'], 
-                $cabecera['idCentro'], 
-                $cabecera['fecha'], 
-                $cabecera['idUsuario'], 
+            $stmtCabecera->bind_param(
+                "sisssii",
+                $cabecera['numAlbaran'],
+                $cabecera['idCliente'],
+                $cabecera['observaciones'],
+                $cabecera['idCentro'],
+                $cabecera['fecha'],
+                $cabecera['idUsuario'],
                 $cabecera['idEmpresa']
             );
             $stmtCabecera->execute();
-            
+
             // Recuperamos el ID del albarán recién creado
             $idAlbaran = $this->conexion->insert_id;
 
@@ -100,17 +110,18 @@ class Albaran {
                     // Validamos los datos opcionales (por si el empleado no es maquinista o no hay importe)
                     $vehiculo = !empty($linea['vehiculoUtilizado']) ? $linea['vehiculoUtilizado'] : null;
                     $importe = !empty($linea['importe']) ? $linea['importe'] : null;
-                    
+
                     // "iissssdsii" -> Integer, Integer, String, String, String, Integer/Null, Double/Null, Integer, Integer
-                    $stmtLinea->bind_param("iisssssii", 
-                        $idAlbaran, 
-                        $linea['idEmpleado'], 
-                        $linea['horaDesde'], 
-                        $linea['horaHasta'], 
-                        $linea['categoriaProfesional'], 
-                        $vehiculo, 
-                        $importe, 
-                        $cabecera['idUsuario'], 
+                    $stmtLinea->bind_param(
+                        "iisssssii",
+                        $idAlbaran,
+                        $linea['idEmpleado'],
+                        $linea['horaDesde'],
+                        $linea['horaHasta'],
+                        $linea['categoriaProfesional'],
+                        $vehiculo,
+                        $importe,
+                        $cabecera['idUsuario'],
                         $cabecera['idEmpresa']
                     );
                     $stmtLinea->execute();
@@ -120,7 +131,6 @@ class Albaran {
             // Confirmamos que todo ha ido bien
             $this->conexion->commit();
             return true;
-
         } catch (Exception $e) {
             // Si algo falla, deshacemos todos los cambios en la base de datos
             $this->conexion->rollback();
@@ -129,16 +139,17 @@ class Albaran {
         }
     }
 
-// ====================================================
+    // ====================================================
     // OBTENER UN ALBARÁN Y SUS LÍNEAS POR ID
     // ====================================================
-    public function obtenerPorId($idAlbaran, $idEmpresa) {
+    public function obtenerPorId($idAlbaran, $idEmpresa)
+    {
         $sql = "SELECT a.*, c.razonSocial as nombreCliente, ce.direccion as nombreCentro 
                 FROM Albaranes a
                 LEFT JOIN Clientes c ON a.idCliente = c.id
                 LEFT JOIN CentrosCliente ce ON a.idCentro = ce.id
                 WHERE a.id = ? AND a.idEmpresa = ?";
-                
+
         $stmt = $this->conexion->prepare($sql);
         if ($stmt) {
             $stmt->bind_param("ii", $idAlbaran, $idEmpresa);
@@ -148,12 +159,13 @@ class Albaran {
         return null;
     }
 
-    public function obtenerLineas($idAlbaran, $idEmpresa) {
+    public function obtenerLineas($idAlbaran, $idEmpresa)
+    {
         $sql = "SELECT l.*, e.nombre as empNombre, e.apellido1 as empApellido 
                 FROM lineasAlbaran l
                 LEFT JOIN Empleados e ON l.idEmpleado = e.id
                 WHERE l.idAlbaran = ? AND l.idEmpresa = ?";
-                
+
         $stmt = $this->conexion->prepare($sql);
         if ($stmt) {
             $stmt->bind_param("ii", $idAlbaran, $idEmpresa);
@@ -163,13 +175,15 @@ class Albaran {
         return [];
     }
 
+
+    // VALIDACIONES
+    
+
     // ====================================================
     // ACTUALIZAR ALBARÁN (TRANSACCIÓN)
     // ====================================================
-
-
-
-    public function actualizarAlbaranCompleto($idAlbaran, $cabecera, $lineas) {
+    public function actualizarAlbaranCompleto($idAlbaran, $cabecera, $lineas)
+    {
 
 
         $this->conexion->begin_transaction();
@@ -178,14 +192,15 @@ class Albaran {
             $sqlCabecera = "UPDATE Albaranes 
                             SET idCliente = ?, observaciones = ?, idCentro = ?, fecha = ? 
                             WHERE id = ? AND idEmpresa = ?";
-                            
+
             $stmtCabecera = $this->conexion->prepare($sqlCabecera);
-            $stmtCabecera->bind_param("isssii", 
-                $cabecera['idCliente'], 
-                $cabecera['observaciones'], 
-                $cabecera['idCentro'], 
-                $cabecera['fecha'], 
-                $idAlbaran, 
+            $stmtCabecera->bind_param(
+                "isssii",
+                $cabecera['idCliente'],
+                $cabecera['observaciones'],
+                $cabecera['idCentro'],
+                $cabecera['fecha'],
+                $idAlbaran,
                 $cabecera['idEmpresa']
             );
             $stmtCabecera->execute();
@@ -205,16 +220,17 @@ class Albaran {
                 foreach ($lineas as $linea) {
                     $vehiculo = !empty($linea['vehiculoUtilizado']) ? $linea['vehiculoUtilizado'] : null;
                     $importe = !empty($linea['importe']) ? $linea['importe'] : null;
-                    
-                    $stmtLinea->bind_param("iisssssii", 
-                        $idAlbaran, 
-                        $linea['idEmpleado'], 
-                        $linea['horaDesde'], 
-                        $linea['horaHasta'], 
-                        $linea['categoriaProfesional'], 
-                        $vehiculo, 
-                        $importe, 
-                        $cabecera['idUsuario'], 
+
+                    $stmtLinea->bind_param(
+                        "iisssssii",
+                        $idAlbaran,
+                        $linea['idEmpleado'],
+                        $linea['horaDesde'],
+                        $linea['horaHasta'],
+                        $linea['categoriaProfesional'],
+                        $vehiculo,
+                        $importe,
+                        $cabecera['idUsuario'],
                         $cabecera['idEmpresa']
                     );
                     $stmtLinea->execute();
@@ -223,11 +239,55 @@ class Albaran {
 
             $this->conexion->commit();
             return true;
-
         } catch (Exception $e) {
             $this->conexion->rollback();
             return $e->getMessage();
         }
     }
-}  
-?>
+    // ==========================================
+    // ELIMINAR ALBARÁN COMPLETO
+    // ==========================================
+   // ==========================================
+    // ELIMINAR ALBARÁN COMPLETO (MODELO - ESTRICTO)
+    // ==========================================
+    public function eliminar($idAlbaran, $idEmpresa) {
+        $this->conexion->begin_transaction();
+        try {
+            // 1. Borramos primero las líneas dependientes
+            $sqlDeleteLineas = "DELETE FROM lineasAlbaran WHERE idAlbaran = ? AND idEmpresa = ?";
+            $stmtLineas = $this->conexion->prepare($sqlDeleteLineas);
+            
+            if (!$stmtLineas) {
+                throw new Exception("Error preparando borrado de líneas: " . $this->conexion->error);
+            }
+            
+            $stmtLineas->bind_param("ii", $idAlbaran, $idEmpresa);
+            
+            if (!$stmtLineas->execute()) {
+                throw new Exception("Error ejecutando borrado de líneas: " . $stmtLineas->error);
+            }
+
+            // 2. Borramos la cabecera del albarán
+            $sqlDeleteCabecera = "DELETE FROM Albaranes WHERE id = ? AND idEmpresa = ?";
+            $stmtCabecera = $this->conexion->prepare($sqlDeleteCabecera);
+            
+            if (!$stmtCabecera) {
+                throw new Exception("Error preparando borrado de cabecera: " . $this->conexion->error);
+            }
+
+            $stmtCabecera->bind_param("ii", $idAlbaran, $idEmpresa);
+            
+            if (!$stmtCabecera->execute()) {
+                throw new Exception("Error ejecutando borrado de cabecera: " . $stmtCabecera->error);
+            }
+
+            $this->conexion->commit();
+            return true;
+            
+        } catch (Exception $e) {
+            $this->conexion->rollback();
+            return $e->getMessage();
+        }
+    }
+} // <-- Fin de la clase Albaran
+
