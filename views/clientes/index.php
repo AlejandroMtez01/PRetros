@@ -1,7 +1,7 @@
 <div class="encabezado-modulo">
     <h2>Listado de Clientes</h2>
     <a href="/index.php?controller=cliente&action=crear" class="btn-primario">
-        <i class="fa-solid fa-plus"></i> Nuevo Cliente
+        <i class="fa-solid fa-plus"></i>&nbsp;Nuevo Cliente
     </a>
 </div>
 

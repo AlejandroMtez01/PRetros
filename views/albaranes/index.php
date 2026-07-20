@@ -1,61 +1,65 @@
-<div class="encabezado-seccion">
+<div class="encabezado-seccion" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
     <h2>Listado de Albaranes</h2>
-    <a href="/index.php?controller=albaran&action=crear" class="btn-principal">
-        <i class="fa-solid fa-plus"></i> Nuevo Albarán
+
+    <a href="/index.php?controller=albaran&action=crear" class="btn-primario" style="text-decoration: none;">
+        <i class="fa-solid fa-plus"></i> &nbsp;Nuevo Albarán
     </a>
 </div>
 
 <!-- ========================================== -->
-<!-- PANEL DE FILTROS ENCADENADOS               -->
+<!-- PANEL DE FILTROS REDISEÑADO                -->
 <!-- ========================================== -->
-<div class="panel-filtros" style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-    <form action="/index.php" method="GET" class="grid-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+<div class="panel-filtros formulario-estandar" style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+    <form action="/index.php" method="GET" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
         
         <!-- Input oculto para mantener el controlador -->
         <input type="hidden" name="controller" value="albaran">
         
-        <div class="form-group">
+        <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
             <label>Nº Albarán</label>
             <input type="text" name="numAlbaran" value="<?php echo htmlspecialchars($_GET['numAlbaran'] ?? ''); ?>" placeholder="Buscar número...">
         </div>
 
-        <div class="form-group">
+        <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
             <label>Cliente</label>
             <select name="idCliente">
                 <option value="">Todos los clientes...</option>
                 <?php foreach ($clientes as $cli): ?>
                     <option value="<?php echo $cli['id']; ?>" <?php echo (isset($_GET['idCliente']) && $_GET['idCliente'] == $cli['id']) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($cli['nombre']); ?>
+                        <?php echo htmlspecialchars($cli['denominacion'] ?? $cli['razonSocial'] ?? $cli['nombre']); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
             <label>Centro de Trabajo</label>
             <select name="idCentro">
                 <option value="">Todos los centros...</option>
                 <?php foreach ($centros as $cen): ?>
                     <option value="<?php echo $cen['id']; ?>" <?php echo (isset($_GET['idCentro']) && $_GET['idCentro'] == $cen['id']) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($cen['denominacion']); ?>
+                        <?php echo htmlspecialchars($cen['denominacion'] ?? $cen['direccion']); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" style="flex: 2; min-width: 130px; margin-bottom: 0;">
             <label>Fecha Desde</label>
             <input type="date" name="fechaDesde" value="<?php echo htmlspecialchars($_GET['fechaDesde'] ?? ''); ?>">
         </div>
 
-        <div class="form-group">
+        <div class="form-group" style="flex: 2; min-width: 130px; margin-bottom: 0;">
             <label>Fecha Hasta</label>
             <input type="date" name="fechaHasta" value="<?php echo htmlspecialchars($_GET['fechaHasta'] ?? ''); ?>">
         </div>
 
-        <div class="form-group" style="display: flex; gap: 10px;">
-            <button type="submit" class="btn-secundario" style="width: 100%;"><i class="fa-solid fa-filter"></i> Filtrar</button>
-            <a href="/index.php?controller=albaran" class="btn-eliminar" style="padding: 10px; text-align: center;" title="Limpiar filtros">
+        <!-- Botonera de Filtros -->
+        <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 0;">
+            <button type="submit" class="btn-secundario" style="padding: 10px 15px; height: 42px;">
+                <i class="fa-solid fa-filter"></i> Filtrar
+            </button>
+            <a href="/index.php?controller=albaran" class="btn-eliminar" style="display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; text-decoration: none; padding: 0;" title="Limpiar filtros">
                 <i class="fa-solid fa-eraser"></i>
             </a>
         </div>
@@ -66,37 +70,43 @@
 <!-- TABLA DE RESULTADOS                        -->
 <!-- ========================================== -->
 <div class="contenedor-tabla">
-    <table class="tabla-datos">
-        <thead>
+    <table class="tabla-datos" style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <thead style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
             <tr>
-                <th>Nº Albarán</th>
-                <th>Fecha</th>
-                <th>Cliente</th>
-                <th>Centro</th>
-                <th>Acciones</th>
+                <th style="padding: 12px 15px; text-align: left; color: #475569;">Nº ALBARÁN</th>
+                <th style="padding: 12px 15px; text-align: left; color: #475569;">FECHA</th>
+                <th style="padding: 12px 15px; text-align: left; color: #475569;">CLIENTE</th>
+                <th style="padding: 12px 15px; text-align: left; color: #475569;">CENTRO</th>
+                <th style="padding: 12px 15px; text-align: center; color: #475569;">ACCIONES</th>
             </tr>
         </thead>
         <tbody>
             <?php if (!empty($albaranes)): ?>
                 <?php foreach ($albaranes as $alb): ?>
-                    <tr>
-                        <td><strong><?php echo htmlspecialchars($alb['numAlbaran']); ?></strong></td>
+                    <tr style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s;">
+                        <td style="padding: 12px 15px;"><strong><?php echo htmlspecialchars($alb['numAlbaran']); ?></strong></td>
                         
-                        <!-- Formateamos la fecha para que se vea como DD/MM/YYYY -->
-                        <td><?php echo date('d/m/Y', strtotime($alb['fecha'])); ?></td>
+                        <!-- Formateamos la fecha a formato europeo -->
+                        <td style="padding: 12px 15px;"><?php echo date('d/m/Y', strtotime($alb['fecha'])); ?></td>
                         
-                        <td><?php echo htmlspecialchars($alb['nombreCliente']); ?></td>
-                        <td><?php echo htmlspecialchars($alb['nombreCentro']); ?></td>
+                        <td style="padding: 12px 15px;"><?php echo htmlspecialchars($alb['nombreCliente']); ?></td>
+                        <td style="padding: 12px 15px;"><?php echo htmlspecialchars($alb['nombreCentro']); ?></td>
                         
-                        <td class="celda-acciones">
-                            <!-- Aquí podrás añadir botones para ver detalles, generar PDF, editar, etc. -->
-                            <button class="btn-sm btn-editar" title="Ver Detalle"><i class="fa-solid fa-eye"></i></button>
+                        <!-- Botonera de acciones (Ver y Editar) -->
+                        <td class="celda-acciones" style="padding: 12px 15px; display: flex; gap: 8px; justify-content: center;">
+                            <a href="/index.php?controller=albaran&action=ver&id=<?php echo $alb['id']; ?>" class="btn-secundario" style="text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 0.9rem;" title="Ver Detalle">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            <a href="/index.php?controller=albaran&action=editar&id=<?php echo $alb['id']; ?>" class="btn-principal" style="text-decoration: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.9rem; background-color: #0f4c81;" title="Editar Albarán">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="5" class="tabla-vacia" style="text-align: center; padding: 20px; color: #64748b;">
+                    <td colspan="5" class="tabla-vacia" style="text-align: center; padding: 30px; color: #64748b;">
+                        <i class="fa-solid fa-folder-open" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 10px; display: block;"></i>
                         No se han encontrado albaranes con estos filtros.
                     </td>
                 </tr>
@@ -104,3 +114,10 @@
         </tbody>
     </table>
 </div>
+
+<style>
+    /* Estilos para que las filas de la tabla se iluminen al pasar el ratón */
+    .tabla-datos tbody tr:hover {
+        background-color: #f8fafc;
+    }
+</style>

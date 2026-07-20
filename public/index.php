@@ -71,6 +71,15 @@ switch ($controladorSolicitado) {
     case 'albaran':
         require_once '../controllers/AlbaranController.php';
         $controller = new AlbaranController($conexion);
+        break;
+
+    case 'puesto':
+        require_once '../controllers/PuestoController.php';
+        $controller = new PuestoController($conexion);
+        break;
+
+
+
 
 
         break;

@@ -125,8 +125,109 @@ class Albaran {
             // Si algo falla, deshacemos todos los cambios en la base de datos
             $this->conexion->rollback();
             error_log("Error al guardar el albarán completo: " . $e->getMessage());
-            return false;
+            return $e->getMessage();
         }
     }
-}
+
+// ====================================================
+    // OBTENER UN ALBARÁN Y SUS LÍNEAS POR ID
+    // ====================================================
+    public function obtenerPorId($idAlbaran, $idEmpresa) {
+        $sql = "SELECT a.*, c.razonSocial as nombreCliente, ce.direccion as nombreCentro 
+                FROM Albaranes a
+                LEFT JOIN Clientes c ON a.idCliente = c.id
+                LEFT JOIN CentrosCliente ce ON a.idCentro = ce.id
+                WHERE a.id = ? AND a.idEmpresa = ?";
+                
+        $stmt = $this->conexion->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("ii", $idAlbaran, $idEmpresa);
+            $stmt->execute();
+            return $stmt->get_result()->fetch_assoc();
+        }
+        return null;
+    }
+
+    public function obtenerLineas($idAlbaran, $idEmpresa) {
+        $sql = "SELECT l.*, e.nombre as empNombre, e.apellido1 as empApellido 
+                FROM lineasAlbaran l
+                LEFT JOIN Empleados e ON l.idEmpleado = e.id
+                WHERE l.idAlbaran = ? AND l.idEmpresa = ?";
+                
+        $stmt = $this->conexion->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("ii", $idAlbaran, $idEmpresa);
+            $stmt->execute();
+            return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        }
+        return [];
+    }
+
+    // ====================================================
+    // ACTUALIZAR ALBARÁN (TRANSACCIÓN)
+    // ====================================================
+
+
+
+    public function actualizarAlbaranCompleto($idAlbaran, $cabecera, $lineas) {
+
+
+        $this->conexion->begin_transaction();
+        try {
+            // 1. Actualizamos la Cabecera
+            $sqlCabecera = "UPDATE Albaranes 
+                            SET idCliente = ?, observaciones = ?, idCentro = ?, fecha = ? 
+                            WHERE id = ? AND idEmpresa = ?";
+                            
+            $stmtCabecera = $this->conexion->prepare($sqlCabecera);
+            $stmtCabecera->bind_param("isssii", 
+                $cabecera['idCliente'], 
+                $cabecera['observaciones'], 
+                $cabecera['idCentro'], 
+                $cabecera['fecha'], 
+                $idAlbaran, 
+                $cabecera['idEmpresa']
+            );
+            $stmtCabecera->execute();
+
+            // 2. Borramos las líneas antiguas
+            $sqlDelete = "DELETE FROM lineasAlbaran WHERE idAlbaran = ? AND idEmpresa = ?";
+            $stmtDelete = $this->conexion->prepare($sqlDelete);
+            $stmtDelete->bind_param("ii", $idAlbaran, $cabecera['idEmpresa']);
+            $stmtDelete->execute();
+
+            // 3. Insertamos las líneas nuevas/modificadas
+            if (!empty($lineas)) {
+                $sqlLinea = "INSERT INTO lineasAlbaran (idAlbaran, idEmpleado, horaDesde, horaHasta, categoriaProfesional, vehiculoUtilizado, importe, idUsuario, idEmpresa) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $stmtLinea = $this->conexion->prepare($sqlLinea);
+
+                foreach ($lineas as $linea) {
+                    $vehiculo = !empty($linea['vehiculoUtilizado']) ? $linea['vehiculoUtilizado'] : null;
+                    $importe = !empty($linea['importe']) ? $linea['importe'] : null;
+                    
+                    $stmtLinea->bind_param("iisssssii", 
+                        $idAlbaran, 
+                        $linea['idEmpleado'], 
+                        $linea['horaDesde'], 
+                        $linea['horaHasta'], 
+                        $linea['categoriaProfesional'], 
+                        $vehiculo, 
+                        $importe, 
+                        $cabecera['idUsuario'], 
+                        $cabecera['idEmpresa']
+                    );
+                    $stmtLinea->execute();
+                }
+            }
+
+            $this->conexion->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->conexion->rollback();
+            return $e->getMessage();
+        }
+    }
+}  
 ?>

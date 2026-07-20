@@ -1,7 +1,7 @@
 <div class="cabecera-modulo">
     <h1>Directorio de Empleados</h1>
     <!-- Este botón lleva al formulario de alta -->
-    <a href="/PRetros/public/index.php?controller=empleado&action=crear" class="btn-primario">+ Nuevo Empleado</a>
+    <a href="/index.php?controller=empleado&action=crear" class="btn-primario">+ Nuevo Empleado</a>
 </div>
 
 <div class="tarjeta-datos">

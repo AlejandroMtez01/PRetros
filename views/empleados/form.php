@@ -1,7 +1,7 @@
 <div class="cabecera-modulo">
     <h1><?= htmlspecialchars($titulo_formulario) ?></h1>
-    <a href="/PRetros/public/index.php?controller=empleado&action=index" class="btn-secundario">
-        <i class="fa-solid fa-arrow-left"></i> Volver al listado
+    <a href="/index.php?controller=empleado&action=index" class="btn-secundario">
+        <i class="fa-solid fa-arrow-left"></i>&nbsp;Volver al listado
     </a>
 </div>
 

@@ -7,7 +7,6 @@
     <table class="tabla-datos">
         <thead>
             <tr>
-                <th style="width: 40px; text-align: center;"></th>
                 <th>Prefijo</th>
                 <th>Nombre del Tipo</th>
                 <th>Configuración (Campos)</th>
@@ -19,9 +18,7 @@
                 <?php foreach ($tipos as $tipo): ?>
                     <tr data-prefijo="<?php echo htmlspecialchars($tipo['prefijo']); ?>">
                         
-                        <td class="handle" style="cursor: grab; color: #94a3b8; text-align: center; font-size: 1.2rem;" title="Arrastrar para ordenar">
-                            <i class="fa-solid fa-grip-vertical"></i>
-                        </td>
+                      
                         
                         <td><span class="badge-prefijo"><?php echo htmlspecialchars($tipo['prefijo']); ?></span></td>
                         <td><strong><?php echo htmlspecialchars($tipo['nombre_tipo']); ?></strong></td>
