@@ -69,14 +69,27 @@ class LoginController
     // Añade un método en tu modelo (Usuario.php) si no lo tienes, para obtener todas:
     // SELECT id, denominacion FROM Empresas ORDER BY denominacion ASC
     
+   // Procesar el registro de un nuevo usuario
     public function registrar() {
         // Obtenemos todas las empresas para llenar el <select>
         $empresas = $this->modelo->obtenerTodasLasEmpresas();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
-            // ... (tu código actual de validación y hash) ...
+            // 1. Recogemos la empresa seleccionada en el formulario
+            $idEmpresaInicial = $_POST['idEmpresa'] ?? null;
+            
+            // 2. Construimos el array de datos con la información del POST
+            $datos = [
+                'nombre'     => trim($_POST['nombre'] ?? ''),
+                'apellido1'  => trim($_POST['apellido1'] ?? ''),
+                'apellido2'  => trim($_POST['apellido2'] ?? ''),
+                'email'      => trim($_POST['email'] ?? ''),
+                // 3. Encriptamos la contraseña de forma segura antes de guardarla
+                'contraseña' => password_hash($_POST['contraseña'], PASSWORD_DEFAULT)
+            ];
 
+            // 4. Guardamos en la base de datos
             if ($this->modelo->crearUsuario($datos, $idEmpresaInicial)) {
                 header("Location: /index.php?controller=login&action=index");
                 exit;
@@ -135,6 +148,22 @@ class LoginController
             header("Location: " . $origen);
             exit;
         }
+    }
+    // ==========================================
+    // GUARDAR ESTADO DEL MENÚ LATERAL (AJAX)
+    // ==========================================
+    public function guardar_estado_menu() {
+        if (session_status() === PHP_SESSION_NONE) { 
+            session_start(); 
+        }
+        
+        if (isset($_POST['oculto'])) {
+            // Guardamos true o false en la sesión
+            $_SESSION['menu_oculto'] = ($_POST['oculto'] === '1');
+        }
+        
+        // Al ser una llamada AJAX, terminamos la ejecución aquí para no cargar HTML
+        exit;
     }
 }
 

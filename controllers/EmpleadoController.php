@@ -85,7 +85,7 @@ class EmpleadoController
         $titulo_formulario = "Modificar Datos del Empleado";
 
         // Fíjate que la URL ahora apunta a 'actualizar' y le pasa el ID
-        $accion_url = "/PRetros/public/index.php?controller=empleado&action=actualizar&id=" . $id;
+        $accion_url = "/index.php?controller=empleado&action=actualizar&id=" . $id;
 
         $contenido_vista = '../views/empleados/form.php';
         require_once '../views/layout/master.php';
@@ -113,7 +113,7 @@ class EmpleadoController
             $this->modelo->actualizarEmpleado($id, $datos);
 
             // Redirigimos al directorio principal
-            header("Location: /PRetros/public/index.php?controller=empleado&action=index");
+            header("Location: /index.php?controller=empleado&action=index");
             exit;
         }
     }
@@ -126,7 +126,7 @@ class EmpleadoController
         }
 
         // Una vez borrado (o si no había ID), redirigimos de vuelta a la tabla
-        header("Location: /PRetros/public/index.php?controller=empleado&action=index");
+        header("Location: /index.php?controller=empleado&action=index");
         exit;
     }
 }

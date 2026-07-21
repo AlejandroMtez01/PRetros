@@ -129,7 +129,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="/PRetros/public/index.php?controller=login&action=registrar" method="POST">
+        <form action="/index.php?controller=login&action=registrar" method="POST">
             
             <div class="grid-2">
                 <div class="grupo-form">
@@ -180,7 +180,7 @@
         </form>
 
         <div class="enlace-registro">
-            ¿Ya tienes una cuenta? <a href="/PRetros/public/index.php?controller=login">Inicia sesión aquí</a>
+            ¿Ya tienes una cuenta? <a href="/index.php?controller=login">Inicia sesión aquí</a>
         </div>
     </div>
 

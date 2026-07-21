@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="../../css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    <!-- ESTILOS DEL SELECTOR DE EMPRESA -->
+    <!-- ESTILOS DEL SELECTOR DE EMPRESA Y MENÚ COLAPSABLE -->
     <style>
         .selector-contexto-empresa {
             padding: 15px 20px;
@@ -52,7 +52,7 @@
             font-weight: 500;
             cursor: pointer;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.5s;
         }
 
         #selectorEmpresaLateral:hover,
@@ -79,10 +79,130 @@
             background: rgba(239, 68, 68, 0.1);
             border-radius: 6px;
         }
+
+        .sidebar {
+            transition: transform 0.6s ease-in-out;
+            z-index: 1000;
+        }
+
+        .contenido-principal {
+            /* Añadimos transición también para el ancho y ancho máximo */
+            transition: margin-left 0.6s ease-in-out, width 0.6s ease-in-out, max-width 0.6s ease-in-out;
+        }
+
+        .btn-toggle-menu {
+            position: fixed;
+            top: 20px;
+            left: 260px;
+            background-color: #0f4c81;
+            color: white;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            width: 35px;
+            height: 45px;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: left 0.6s ease-in-out, background-color 0.4s;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-toggle-menu:hover {
+            background-color: #334155;
+        }
+
+        /* ========================================== */
+        /* ESTILOS PARA OCULTAR/MOSTRAR EL MENÚ       */
+        /* ========================================== */
+
+        .sidebar {
+            transition: all 0.3s ease-in-out;
+            z-index: 1000;
+        }
+
+        .contenido-principal {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .contenedor-albaran,
+        .contenedor-tabla,
+        .panel-filtros,
+        .tarjeta-formulario {
+            transition: max-width 0.3s ease-in-out, width 0.3s ease-in-out;
+        }
+
+        /* Botón flotante */
+        .btn-toggle-menu {
+            position: fixed;
+            top: 20px;
+            left: 260px;
+            /* Ajusta este valor si tu sidebar mide distinto (ej. 250px o 300px) */
+            background-color: #0f4c81;
+            color: white;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            width: 35px;
+            height: 45px;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: left 0.3s ease-in-out, background-color 0.2s;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-toggle-menu:hover {
+            background-color: #334155;
+        }
+
+        /* --- ESTADOS CUANDO EL MENÚ ESTÁ OCULTO --- */
+
+        body.menu-oculto .sidebar {
+            transform: translateX(-100%);
+            /* CLAVE: Esto elimina el "hueco" fantasma que dejaba el menú al ocultarse */
+            margin-left: -260px;
+            /* Debe coincidir con el ancho de tu sidebar */
+        }
+
+        body.menu-oculto .btn-toggle-menu {
+            left: 0;
+        }
+
+        body.menu-oculto .contenido-principal {
+            margin-left: 0 !important;
+            width: 100% !important;
+            flex-grow: 1 !important;
+            /* Si usas Flexbox, esto fuerza a ocupar el 100% */
+        }
+
+        /* CLAVE: Destruimos el límite de ancho para que se estire al máximo */
+        body.menu-oculto .contenedor-albaran,
+        body.menu-oculto .contenedor-tabla,
+        body.menu-oculto .panel-filtros,
+        body.menu-oculto .tarjeta-formulario,
+        body.menu-oculto .formulario-estandar {
+            max-width: none !important;
+            width: 100% !important;
+        }
     </style>
 </head>
 
 <body>
+
+    <?php
+    // Comprobamos si en sesión el menú está marcado como oculto
+    $clase_menu = (isset($_SESSION['menu_oculto']) && $_SESSION['menu_oculto'] === true) ? 'menu-oculto' : '';
+    ?>
+
+    <body class="<?php echo $clase_menu; ?>"></body>
+
+    <!-- Botón Flotante para ocultar/mostrar menú -->
+    <button id="toggleMenuBtn" class="btn-toggle-menu" aria-label="Ocultar/Mostrar menú">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
 
     <aside class="sidebar">
         <h2>Panel Operativo</h2>
@@ -96,9 +216,6 @@
         ?>
         <div class="selector-contexto-empresa">
             <?php if (count($empresas_usuario) > 1): ?>
-
-                <!-- TIENE VARIAS EMPRESAS: Mostramos el desplegable -->
-                <!-- Asegúrate de crear la acción 'cambiar_empresa' en tu LoginController -->
                 <form action="/index.php?controller=login&action=cambiar_empresa" method="POST" id="formCambioEmpresa">
                     <label for="selectorEmpresaLateral">Empresa Activa</label>
                     <div class="select-wrapper">
@@ -112,23 +229,16 @@
                         </select>
                     </div>
                 </form>
-
             <?php elseif (count($empresas_usuario) === 1): ?>
-
-                <!-- TIENE SOLO UNA EMPRESA: Mostramos texto fijo -->
                 <label>Empresa Activa</label>
                 <div class="empresa-unica-label">
                     <i class="fa-solid fa-building icon-empresa"></i>
                     <span><?php echo htmlspecialchars($empresas_usuario[0]['nombre']); ?></span>
                 </div>
-
             <?php else: ?>
-
-                <!-- SIN EMPRESA -->
                 <div class="empresa-alerta">
                     <i class="fa-solid fa-triangle-exclamation"></i> Sin empresa asignada
                 </div>
-
             <?php endif; ?>
         </div>
         <!-- ========================================== -->
@@ -139,8 +249,6 @@
                 <li><a href="/index.php?controller=empleado">👷 Empleados</a></li>
                 <li><a href="/index.php?controller=catalogo_inventario">⚙️ Catálogo Inventario</a></li>
                 <li><a href="/index.php?controller=articulo">🚜 Inventario</a></li>
-                <!-- <li><a href="/index.php?controller=catalogo_operacion">📋 Catálogo Operaciones</a></li> -->
-                <!-- <li><a href="/index.php?controller=proyecto">🏗️ Proyectos</a></li> -->
                 <li><a href="/index.php?controller=albaran">📝 Albaranes</a></li>
                 <li><a href="/index.php?controller=partes">🎯 Partes</a></li>
                 <li><a href="/index.php?controller=tabla&action=index">🔧 Tablas Auxiliares</a></li>
@@ -165,11 +273,48 @@
 
     <main class="contenido-principal">
         <?php
-        // Aquí se inyecta la tabla de empleados, el formulario de un proyecto, etc.
         require_once $contenido_vista;
         ?>
     </main>
 
+    <!-- SCRIPT PARA GESTIONAR EL BOTÓN DEL MENÚ -->
+   
+
+    <!-- SCRIPT PARA GESTIONAR EL BOTÓN DEL MENÚ Y GUARDAR SESIÓN -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnToggle = document.getElementById('toggleMenuBtn');
+            const iconToggle = btnToggle.querySelector('i');
+            
+            // 1. Ajustar el icono inicial por si la página carga con el menú ya oculto
+            if (document.body.classList.contains('menu-oculto')) {
+                iconToggle.classList.remove('fa-chevron-left');
+                iconToggle.classList.add('fa-chevron-right');
+            }
+
+            // 2. Evento de clic
+            btnToggle.addEventListener('click', function() {
+                document.body.classList.toggle('menu-oculto');
+                const estaOculto = document.body.classList.contains('menu-oculto');
+                
+                // Cambiamos la dirección de la flecha
+                if (estaOculto) {
+                    iconToggle.classList.remove('fa-chevron-left');
+                    iconToggle.classList.add('fa-chevron-right');
+                } else {
+                    iconToggle.classList.remove('fa-chevron-right');
+                    iconToggle.classList.add('fa-chevron-left');
+                }
+
+                // 3. Llamada silenciosa al servidor para guardar la preferencia en la sesión
+                fetch('/index.php?controller=login&action=guardar_estado_menu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'oculto=' + (estaOculto ? '1' : '0')
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>
