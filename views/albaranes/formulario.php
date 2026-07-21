@@ -22,7 +22,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
     <div class="encabezado-seccion" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2><?php echo $tituloPantalla; ?></h2>
         <a href="/index.php?controller=albaran" class="btn-secundario" style="text-decoration: none;">
-            <i class="fa-solid fa-xmark"></i> Cancelar
+            <i class="fa-solid fa-xmark"></i>&nbsp; Cancelar
         </a>
     </div>
 
@@ -222,6 +222,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     </tr>
 
                     <?php if (!empty($puestos)): foreach ($puestos as $puesto): ?>
+                        <?php if ($puesto['descripcion'] == 'Maquinista') continue; ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($puesto['descripcion']); ?></td>
                                 <td style="text-align: center;">

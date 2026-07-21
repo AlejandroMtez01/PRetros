@@ -3,10 +3,10 @@
     
     <div style="display: flex; gap: 10px;">
         <a href="/index.php?controller=cliente&action=index" class="btn-secundario" style="background: white; border: 1px solid #cbd5e1; padding: 10px 20px; border-radius: 6px; text-decoration: none; color: #475569; font-weight: 600;">
-            <i class="fa-solid fa-arrow-left"></i> Volver a Clientes
+            <i class="fa-solid fa-arrow-left"></i> &nbsp;Volver a Clientes
         </a>
         <a href="/index.php?controller=centro&action=crear&idCliente=<?php echo $idCliente; ?>" class="btn-primario">
-            <i class="fa-solid fa-plus"></i> Nuevo Centro
+            <i class="fa-solid fa-plus"></i> &nbsp;Nuevo Centro
         </a>
     </div>
 </div>

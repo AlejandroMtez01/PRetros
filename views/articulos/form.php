@@ -96,10 +96,10 @@
 
             <div class="acciones-formulario" style="margin-top: 40px;">
                 <a href="/index.php?controller=articulo&action=index" class="btn-secundario">
-                    <i class="fa-solid fa-xmark"></i> Cancelar
+                    <i class="fa-solid fa-xmark"></i>&nbsp;Cancelar
                 </a>
                 <button type="submit" class="btn-primario">
-                    <i class="fa-solid fa-floppy-disk"></i> Guardar Registro
+                    <i class="fa-solid fa-floppy-disk"></i>&nbsp;Guardar Registro
                 </button>
             </div>
             

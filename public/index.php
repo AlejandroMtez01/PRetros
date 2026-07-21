@@ -78,6 +78,11 @@ switch ($controladorSolicitado) {
         $controller = new PuestoController($conexion);
         break;
 
+    case 'partes':
+        require_once '../controllers/ParteController.php';
+        $controller = new ParteController($conexion);
+        break;
+
 
 
 

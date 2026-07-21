@@ -1,9 +1,27 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$mensaje_error = $_SESSION['error_eliminar'] ?? null;
+unset($_SESSION['error_eliminar']);
+?>
+
 <div class="cabecera-modulo">
     <h1>Directorio de Catalogo de Inventario</h1>
-    <!-- Este botón lleva al formulario de alta -->
     <a href="/index.php?controller=catalogo_inventario&action=crear" class="btn-primario">+ Nuevo Catálogo de Inventario</a>
 </div>
+
+<!-- NUEVO BLOQUE DE ERROR -->
+<?php if ($mensaje_error): ?>
+    <div class="alerta-error" style="background-color: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid #f87171; margin-bottom: 20px;">
+        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Operación denegada:</strong> <br><br>
+        <?php echo $mensaje_error; ?> <!-- No usamos htmlspecialchars aquí para que los <a> funcionen -->
+    </div>
+<?php endif; ?>
+
+<!-- El resto de tu código de la tabla va aquí debajo... -->
 <div class="contenedor-tabla">
+
     <table class="tabla-datos">
         <thead>
             <tr>

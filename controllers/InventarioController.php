@@ -158,10 +158,42 @@ class InventarioController {
         }
     }
 
-    public function eliminar($prefijo) {
-        $this->modelo->eliminarTipo($prefijo, $_SESSION['idEmpresa']);
+   public function eliminar($prefijo) {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $idEmpresa = $_SESSION['idEmpresa'];
+
+        // 1. Comprobamos si hay máquinas/vehículos usando este catálogo
+        $dependencias = $this->modelo->comprobarDependencias($prefijo, $idEmpresa);
+
+        if (!empty($dependencias)) {
+            $enlaces = [];
+            foreach ($dependencias as $dep) {
+                $denominacion = htmlspecialchars($dep['denominacion']);
+                
+                // NOTA: Ajusta 'controller=inventario' si tu controlador de máquinas se llama distinto (ej. vehiculos, maquinas...)
+                // Pasamos la denominación por URL para que el enlace abra la edición de esa máquina
+                $url = "/index.php?controller=articulo&action=editar&denominacion=" . urlencode($dep['denominacion'])."&prefijo=".$prefijo;
+                // Creamos el enlace clickeable
+                $enlaces[] = "<a href='{$url}' style='color: #b91c1c; text-decoration: underline; font-weight: bold;'>{$denominacion}</a>";
+            }
+            
+            $mensaje = "No se puede eliminar el catálogo <strong>" . htmlspecialchars($prefijo) . "</strong> porque está siendo utilizado por los siguientes elementos de tu inventario: <br><br>" 
+                     . implode(", ", $enlaces) 
+                     . "<br><br>Debes eliminar o reasignar estos elementos antes de borrar su esquema de configuración.";
+            
+            $_SESSION['error_eliminar'] = $mensaje;
+        } else {
+            // 2. Si está libre, lo eliminamos
+            $resultado = $this->modelo->eliminarTipo($prefijo, $idEmpresa);
+            
+            if ($resultado !== true) {
+                $_SESSION['error_eliminar'] = "Error interno de Base de Datos al eliminar: " . $resultado;
+            }
+        }
+
         header("Location: /index.php?controller=catalogo_inventario&action=index");
         exit;
     }
+    
 }
 ?>

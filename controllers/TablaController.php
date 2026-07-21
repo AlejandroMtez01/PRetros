@@ -69,5 +69,41 @@ class TablaController {
             exit;
         }
     }
+    public function eliminar_cabecera() {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        
+        if (!isset($_GET['codigo'])) {
+            header("Location: /index.php?controller=tabla&action=index");
+            exit;
+        }
+
+        $codigo = $_GET['codigo'];
+        $idEmpresa = $_SESSION['idEmpresa'];
+
+        // 1. Comprobamos si está asignada en el Catálogo de Inventario
+        $dependencias = $this->modelo->comprobarDependenciasCatalogo($codigo, $idEmpresa);
+        
+        if (!empty($dependencias)) {
+            // Si hay dependencias, construimos el mensaje de error con los sitios exactos
+            $nombres_catalogos = [];
+            foreach ($dependencias as $dep) {
+                $nombres_catalogos[] = "<strong>" . htmlspecialchars($dep['nombre_tipo']) . " (" . htmlspecialchars($dep['prefijo']) . ")</strong>";
+            }
+            
+            $mensaje = "No se puede eliminar la tabla auxiliar <strong>" . htmlspecialchars($codigo) . "</strong> porque está vinculada actualmente a los siguientes catálogos: " . implode(", ", $nombres_catalogos) . ". <br><br>Debes desvincularla en el catálogo de inventario antes de proceder.";
+            
+            $_SESSION['error_eliminar'] = $mensaje;
+        } else {
+            // 2. Si está libre de dependencias, la eliminamos
+            $resultado = $this->modelo->eliminarCabecera($codigo, $idEmpresa);
+            
+            if ($resultado !== true) {
+                $_SESSION['error_eliminar'] = "Error interno de Base de Datos al eliminar: " . $resultado;
+            }
+        }
+
+        header("Location: /index.php?controller=tabla&action=index");
+        exit;
+    }
 }
 ?>

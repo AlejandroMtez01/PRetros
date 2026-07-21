@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ERP Remediación de Aguas y Suelos</title>
     <link rel="stylesheet" href="../../css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
+
     <!-- ESTILOS DEL SELECTOR DE EMPRESA -->
     <style>
         .selector-contexto-empresa {
@@ -54,7 +55,8 @@
             transition: border-color 0.2s;
         }
 
-        #selectorEmpresaLateral:hover, #selectorEmpresaLateral:focus {
+        #selectorEmpresaLateral:hover,
+        #selectorEmpresaLateral:focus {
             border-color: #64748b;
         }
 
@@ -79,11 +81,12 @@
         }
     </style>
 </head>
+
 <body>
-    
+
     <aside class="sidebar">
-        <h2>Panel Operativo</h2>       
-        
+        <h2>Panel Operativo</h2>
+
         <!-- ========================================== -->
         <!-- BLOQUE: SELECTOR DE EMPRESA ACTIVA         -->
         <!-- ========================================== -->
@@ -93,7 +96,7 @@
         ?>
         <div class="selector-contexto-empresa">
             <?php if (count($empresas_usuario) > 1): ?>
-                
+
                 <!-- TIENE VARIAS EMPRESAS: Mostramos el desplegable -->
                 <!-- Asegúrate de crear la acción 'cambiar_empresa' en tu LoginController -->
                 <form action="/index.php?controller=login&action=cambiar_empresa" method="POST" id="formCambioEmpresa">
@@ -111,7 +114,7 @@
                 </form>
 
             <?php elseif (count($empresas_usuario) === 1): ?>
-                
+
                 <!-- TIENE SOLO UNA EMPRESA: Mostramos texto fijo -->
                 <label>Empresa Activa</label>
                 <div class="empresa-unica-label">
@@ -120,12 +123,12 @@
                 </div>
 
             <?php else: ?>
-                
+
                 <!-- SIN EMPRESA -->
                 <div class="empresa-alerta">
                     <i class="fa-solid fa-triangle-exclamation"></i> Sin empresa asignada
                 </div>
-                
+
             <?php endif; ?>
         </div>
         <!-- ========================================== -->
@@ -138,12 +141,13 @@
                 <li><a href="/index.php?controller=articulo">🚜 Inventario</a></li>
                 <!-- <li><a href="/index.php?controller=catalogo_operacion">📋 Catálogo Operaciones</a></li> -->
                 <!-- <li><a href="/index.php?controller=proyecto">🏗️ Proyectos</a></li> -->
-                 <li><a href="/index.php?controller=albaran">📝 Albaranes</a></li>
+                <li><a href="/index.php?controller=albaran">📝 Albaranes</a></li>
+                <li><a href="/index.php?controller=partes">🎯 Partes</a></li>
                 <li><a href="/index.php?controller=tabla&action=index">🔧 Tablas Auxiliares</a></li>
                 <li><a href="/index.php?controller=puesto&action=index">👩‍💼 Puestos</a></li>
             </ul>
             <br><br><br>
-            
+
             <!-- ========================================== -->
             <!-- BLOQUE: PERFIL DE USUARIO Y SALIR          -->
             <!-- ========================================== -->
@@ -160,11 +164,12 @@
     </aside>
 
     <main class="contenido-principal">
-        <?php 
+        <?php
         // Aquí se inyecta la tabla de empleados, el formulario de un proyecto, etc.
-        require_once $contenido_vista; 
+        require_once $contenido_vista;
         ?>
     </main>
 
 </body>
+
 </html>

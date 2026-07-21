@@ -46,10 +46,10 @@
 
             <div class="acciones-formulario">
                 <a href="/index.php?controller=centro&action=index&idCliente=<?php echo $_GET['idCliente']; ?>" class="btn-secundario">
-                    <i class="fa-solid fa-xmark"></i> Cancelar
+                    <i class="fa-solid fa-xmark"></i>&nbsp; Cancelar
                 </a>
                 <button type="submit" class="btn-primario">
-                    <i class="fa-solid fa-floppy-disk"></i> Guardar Centro
+                    <i class="fa-solid fa-floppy-disk"></i>&nbsp; Guardar Centro
                 </button>
             </div>
             

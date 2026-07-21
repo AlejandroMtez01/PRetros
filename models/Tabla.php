@@ -28,6 +28,42 @@ class Tabla {
         return $stmt->execute();
     }
 
+    // --- MÓDULO DE ELIMINACIÓN Y DEPENDENCIAS ---
+    public function comprobarDependenciasCatalogo($codigoCabecera, $idEmpresa) {
+        // Buscamos si el código de esta tabla existe dentro del JSON de configuración del catálogo
+        $sql = "SELECT prefijo, nombre_tipo FROM CatalogoInventario 
+                WHERE idEmpresa = ? AND esquema_configuracion LIKE ?";
+        $stmt = $this->conexion->prepare($sql);
+        
+        // Buscamos el código exacto entre comillas (ej. "COMBUSTIBLE") dentro del JSON
+        $busqueda_json = '%"' . $codigoCabecera . '"%';
+        $stmt->bind_param("is", $idEmpresa, $busqueda_json);
+        $stmt->execute();
+        
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function eliminarCabecera($codigo, $idEmpresa) {
+        $this->conexion->begin_transaction();
+        try {
+            // 1. Borramos las líneas hijas primero
+            $stmtLineas = $this->conexion->prepare("DELETE FROM GTablasLineas WHERE codigoCabecera = ? AND idEmpresa = ?");
+            $stmtLineas->bind_param("si", $codigo, $idEmpresa);
+            $stmtLineas->execute();
+
+            // 2. Borramos la cabecera principal
+            $stmtCabecera = $this->conexion->prepare("DELETE FROM GTablasCabecera WHERE codigo = ? AND idEmpresa = ?");
+            $stmtCabecera->bind_param("si", $codigo, $idEmpresa);
+            $stmtCabecera->execute();
+
+            $this->conexion->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conexion->rollback();
+            return $e->getMessage();
+        }
+    }
+
     // --- GESTIÓN DE LÍNEAS ---
     public function obtenerLineas($codigoCabecera, $idEmpresa) {
         $stmt = $this->conexion->prepare("SELECT * FROM GTablasLineas WHERE codigoCabecera = ? AND idEmpresa = ? ORDER BY codigo ASC");
