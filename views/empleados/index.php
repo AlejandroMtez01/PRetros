@@ -48,6 +48,11 @@
 <!-- Le añadimos la clase celda-acciones al td -->
                         <td class="celda-acciones">
                             
+                            <!-- NUEVO BOTÓN: Ver Horarios -->
+                            <a href="/index.php?controller=empleado&action=verHorarios&id=<?= $empleado['id'] ?>" class="btn-sm" style="background-color: #8b5cf6; color: white; text-decoration: none; border: none; padding: 6px 10px; border-radius: 4px; font-weight: 500; margin-right: 4px;">
+                                <i class="fa-regular fa-clock"></i> Horarios
+                            </a>
+
                             <!-- Botón de Editar con sus nuevas clases -->
                             <a href="/index.php?controller=empleado&action=editar&id=<?= $empleado['id'] ?>" class="btn-sm btn-editar">
                                 <i class="fa-solid fa-pen-to-square"></i> Editar

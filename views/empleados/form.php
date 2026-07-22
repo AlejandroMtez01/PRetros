@@ -10,7 +10,7 @@ unset($_SESSION['error_guardado']);
 // ==========================================
 $esEdicion = isset($empleado) && !empty($empleado['id']);
 $titulo_formulario = $esEdicion ? 'Editar Empleado: ' . htmlspecialchars($empleado['nombre'] . ' ' . $empleado['apellido1']) : 'Crear Nuevo Empleado';
-$accion_url = $esEdicion ? '/index.php?controller=empleado&action=actualizar' : '/index.php?controller=empleado&action=guardar';
+$accion_url = $esEdicion ? '/index.php?controller=empleado&action=actualizar&id=' . $empleado['id'] : '/index.php?controller=empleado&action=guardar';
 $iconoBoton = $esEdicion ? 'fa-arrows-rotate' : 'fa-floppy-disk';
 $textoBoton = $esEdicion ? 'Actualizar Empleado' : 'Guardar Empleado';
 ?>
@@ -23,7 +23,7 @@ $textoBoton = $esEdicion ? 'Actualizar Empleado' : 'Guardar Empleado';
         </a>
     </div>
 
-    <!-- Bloque de Error -->
+    <!-- Bloque de Error PHP -->
     <?php if ($mensaje_error): ?>
         <div class="alerta-error">
             <i class="fa-solid fa-triangle-exclamation"></i>
@@ -31,8 +31,11 @@ $textoBoton = $esEdicion ? 'Actualizar Empleado' : 'Guardar Empleado';
         </div>
     <?php endif; ?>
 
-    <form action="<?php echo htmlspecialchars($accion_url); ?>" method="POST" class="formulario-estandar">
-        
+    <!-- Contenedor dinámico para errores de JavaScript -->
+    <div id="contenedor-errores-js" style="display: none;" class="alerta-error"></div>
+
+    <form action="<?php echo htmlspecialchars($accion_url); ?>" method="POST" class="formulario-estandar" id="formEmpleado">
+
         <?php if ($esEdicion): ?>
             <input type="hidden" name="id" value="<?php echo $empleado['id']; ?>">
         <?php endif; ?>
@@ -65,7 +68,7 @@ $textoBoton = $esEdicion ? 'Actualizar Empleado' : 'Guardar Empleado';
         <!-- ========================================== -->
         <fieldset>
             <legend>Identidad y Datos Laborales</legend>
-            
+
             <div class="grid-2">
                 <div class="form-group">
                     <label for="DNI">DNI / NIE *</label>
@@ -73,7 +76,7 @@ $textoBoton = $esEdicion ? 'Actualizar Empleado' : 'Guardar Empleado';
                 </div>
                 <div class="form-group">
                     <label for="numSS">Nº Seguridad Social *</label>
-                    <input type="text" id="numSS" name="numSS" value="<?php echo htmlspecialchars($empleado['numSS'] ?? ''); ?>" required>
+                    <input type="text" id="numSS" name="numSS" value="<?php echo htmlspecialchars($empleado['numSS'] ?? ''); ?>" required placeholder="12 dígitos">
                 </div>
             </div>
 
@@ -97,9 +100,176 @@ $textoBoton = $esEdicion ? 'Actualizar Empleado' : 'Guardar Empleado';
 </div>
 
 <!-- ========================================== -->
+<!-- SCRIPT DE VALIDACIÓN DINÁMICA              -->
+<!-- ========================================== -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('formEmpleado');
+        const contenedorErrores = document.getElementById('contenedor-errores-js');
+
+        // Función para validar DNI o NIE español
+        function validarDNI(dni) {
+            dni = dni.toUpperCase().replace(/[-\s]/g, '');
+            if (!/^[YXZ]?\d{7,8}[A-Z]$/.test(dni)) return false;
+
+            const letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+            let numero = dni.substring(0, dni.length - 1);
+            const letra = dni.substring(dni.length - 1);
+
+            // Sustituir letras de NIE por números para el cálculo
+            numero = numero.replace('X', 0).replace('Y', 1).replace('Z', 2);
+
+            return letras.charAt(numero % 23) === letra;
+        }
+
+        // Función para validar Número de la Seguridad Social (NAF) según la regla oficial
+        function validarNSS(nss) {
+            // Limpiamos posibles espacios, guiones o puntos
+            nss = nss.replace(/[-\s\./]/g, '');
+
+            // Debe ser un número de exactamente 12 dígitos
+            if (nss.length !== 12 || !/^\d+$/.test(nss)) return false;
+
+            // Desglosamos las partes del NAF
+            const provincia = nss.substring(0, 2);
+            const numeroSecuencia = nss.substring(2, 10);
+            const controlOriginal = parseInt(nss.substring(10, 12), 10);
+
+            const numeroInt = parseInt(numeroSecuencia, 10);
+            let cadenaCalculo = '';
+
+            // REGLA OFICIAL DE LA TGSS:
+            // Si el número central es menor de 10.000.000 (empieza por cero),
+            // se suprime ese primer dígito al concatenar con la provincia.
+            if (numeroInt < 10000000) {
+                cadenaCalculo = provincia + numeroSecuencia.substring(1);
+            } else {
+                cadenaCalculo = provincia + numeroSecuencia;
+            }
+
+            // Realizamos el cálculo del módulo 97 sobre la cadena correcta
+            const dividendo = parseInt(cadenaCalculo, 10);
+            const controlCalculado = dividendo % 97;
+
+            return controlCalculado === controlOriginal;
+        }
+
+
+
+        form.addEventListener('submit', function(e) {
+            let errores = [];
+
+            // 1. Validar DNI
+            const inputDni = document.getElementById('DNI');
+            if (!validarDNI(inputDni.value)) {
+                errores.push({
+                    mensaje: "El DNI/NIE introducido no es válido matemáticamente.",
+                    id: "DNI"
+                });
+            }
+
+            // 2. Validar Seguridad Social
+            const inputSS = document.getElementById('numSS');
+            if (!validarNSS(inputSS.value)) {
+                errores.push({
+                    mensaje: "El Número de la Seguridad Social introducido no es válido (deben ser 12 dígitos concordantes).",
+                    id: "numSS"
+                });
+            }
+
+            // 3. Validar Fechas Congruentes
+            const inputAlta = document.getElementById('fechaAlta');
+            const inputBaja = document.getElementById('fechaBaja');
+            if (inputAlta.value && inputBaja.value) {
+                const fechaAlta = new Date(inputAlta.value);
+                const fechaBaja = new Date(inputBaja.value);
+                const fechaHoy = new Date();
+
+                if (fechaBaja < fechaAlta) {
+                    errores.push({
+                        mensaje: "Error de congruencia: La Fecha de Baja no puede ser anterior a la Fecha de Alta.",
+                        id: "fechaBaja"
+                    });
+                }
+
+            }
+            // Validación independiente para la fecha de alta
+            if (inputAlta.value) {
+                const fechaAlta = new Date(inputAlta.value);
+                fechaAlta.setHours(0, 0, 0, 0);
+
+
+                // Creamos un objeto para hoy pero reseteando las horas a 00:00:00 para comparar solo el día
+                const fechaHoy = new Date();
+                fechaHoy.setHours(0, 0, 0, 0);
+
+                // CORRECCIÓN: Si la fecha de alta es estrictamente mayor que hoy
+                if (fechaAlta > fechaHoy) {
+                    errores.push({
+                        mensaje: "Error de congruencia: La Fecha de Alta no puede ser superior a la Fecha de Hoy.",
+                        id: "fechaAlta"
+                    });
+                }
+            }
+
+            // Si hay errores, detener el envío y mostrarlos
+            if (errores.length > 0) {
+                e.preventDefault(); // Evitamos que el formulario haga POST
+
+                // Construimos la lista de errores en HTML
+                let htmlErrores = '<i class="fa-solid fa-triangle-exclamation"></i> <strong>Operación denegada. Corrige los siguientes errores:</strong><ul style="margin-top: 10px; padding-left: 20px;">';
+
+                errores.forEach(err => {
+                    // Creamos un enlace clickeable que pasa el ID del campo a una función global
+                    htmlErrores += `<li style="margin-bottom: 5px;">
+                    ${err.mensaje} <a href="javascript:void(0)" onclick="enfocarCampo('${err.id}')" style="color: #b91c1c; text-decoration: underline; font-weight: 500;">(Ir al error)
+                    </a>
+                </li>`;
+                });
+
+                htmlErrores += '</ul>';
+                contenedorErrores.innerHTML = htmlErrores;
+                contenedorErrores.style.display = 'block';
+
+                // Hacer scroll suave hacia la caja de errores
+                contenedorErrores.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            } else {
+                contenedorErrores.style.display = 'none';
+            }
+        });
+    });
+
+    // Función global para que al hacer clic en el error haga focus y un pequeño parpadeo rojo
+    function enfocarCampo(idCampo) {
+        const elemento = document.getElementById(idCampo);
+        if (elemento) {
+            elemento.focus();
+            elemento.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+
+            // Efecto visual temporal para destacar el campo
+            const bordeOriginal = elemento.style.borderColor;
+            elemento.style.borderColor = '#ef4444';
+            elemento.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.2)';
+
+            setTimeout(() => {
+                elemento.style.borderColor = bordeOriginal;
+                elemento.style.boxShadow = '';
+            }, 1500);
+        }
+    }
+</script>
+
+<!-- ========================================== -->
 <!-- ESTILOS UNIFICADOS DE FORMULARIO           -->
 <!-- ========================================== -->
 <style>
+    /* ... Tus estilos CSS se mantienen exactamente igual ... */
     .formulario-estandar fieldset {
         border: 1px solid #cbd5e1;
         border-radius: 8px;
@@ -193,7 +363,8 @@ $textoBoton = $esEdicion ? 'Actualizar Empleado' : 'Guardar Empleado';
         transition: opacity 0.2s;
     }
 
-    .btn-principal:hover, .btn-secundario:hover {
+    .btn-principal:hover,
+    .btn-secundario:hover {
         opacity: 0.9;
     }
 </style>

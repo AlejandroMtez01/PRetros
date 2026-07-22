@@ -49,7 +49,7 @@
                                    value="<?php echo htmlspecialchars($valor_actual); ?>"
                                    <?php echo $campo['es_obligatorio'] ? 'required' : ''; ?>>
                         
-                        <!-- NUEVO BLOQUE LOOKUP MODAL -->
+                       <!-- NUEVO BLOQUE LOOKUP MODAL CON VALIDACIÓN NATIVA HTML5 -->
                         <?php elseif ($campo['tipo_dato'] === 'lookup'): 
                             $cod_tabla = $campo['tabla_ayuda'];
                             
@@ -64,18 +64,23 @@
                                 }
                             }
                         ?>
-                            <div class="input-grupo-modal">
-                                <!-- Input oculto que envía el CÓDIGO real a la base de datos -->
-                                <input type="hidden" id="hidden_<?php echo htmlspecialchars($id_c); ?>" 
-                                       name="datos[<?php echo htmlspecialchars($id_c); ?>]" 
-                                       value="<?php echo htmlspecialchars($valor_actual); ?>">
+                            <div class="input-grupo-modal" style="position: relative;">
                                 
-                                <!-- Input visible de solo lectura -->
+                                <!-- 1. INPUT REAL (Invisible pero validable por el navegador) -->
+                                <!-- Al ser type="text" con opacidad 0, HTML5 obliga a rellenarlo y bloquea el botón Guardar -->
+                                <input type="text" id="hidden_<?php echo htmlspecialchars($id_c); ?>" 
+                                       name="datos[<?php echo htmlspecialchars($id_c); ?>]" 
+                                       value="<?php echo htmlspecialchars($valor_actual); ?>"
+                                       style="position: absolute; opacity: 0; width: 1px; height: 1px; bottom: 10px; left: 10px; pointer-events: none; z-index: -1;"
+                                       tabindex="-1"
+                                       <?php echo $campo['es_obligatorio'] ? 'required title="Debe seleccionar un valor del diccionario"' : ''; ?>>
+                                
+                                <!-- 2. INPUT VISIBLE PARA EL USUARIO -->
                                 <input type="text" id="visible_<?php echo htmlspecialchars($id_c); ?>" 
                                        value="<?php echo htmlspecialchars($desc_actual); ?>" 
                                        readonly placeholder="Seleccionar..." 
                                        onclick="abrirModalDiccionario('<?php echo htmlspecialchars($id_c); ?>', '<?php echo htmlspecialchars($cod_tabla); ?>')"
-                                       <?php echo $campo['es_obligatorio'] ? 'required' : ''; ?>>
+                                       style="cursor: pointer; background-color: #ffffff; <?php echo $campo['es_obligatorio'] ? 'border-left: 3px solid #ef4444;' : ''; ?>">
                                        
                                 <button type="button" onclick="abrirModalDiccionario('<?php echo htmlspecialchars($id_c); ?>', '<?php echo htmlspecialchars($cod_tabla); ?>')">
                                     <i class="fa-solid fa-magnifying-glass"></i>
@@ -214,4 +219,54 @@
             cerrarModalDiccionario();
         }
     }
+    // ==========================================
+    // VALIDACIÓN AL ENVIAR FORMULARIO
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        
+        form.addEventListener('submit', function(e) {
+            // Buscamos todos los campos ocultos que hemos marcado como requeridos
+            const lookupsRequeridos = document.querySelectorAll('input.requerido-lookup');
+            let hayError = false;
+            let primerError = null;
+
+            lookupsRequeridos.forEach(function(hiddenInput) {
+                if (hiddenInput.value.trim() === '') {
+                    hayError = true;
+                    
+                    // Buscamos el input visible asociado para marcarlo en rojo
+                    const idVisible = hiddenInput.id.replace('hidden_', 'visible_');
+                    const visibleInput = document.getElementById(idVisible);
+                    
+                    if (visibleInput) {
+                        visibleInput.style.borderColor = '#ef4444';
+                        visibleInput.style.backgroundColor = '#fee2e2';
+                        
+                        if (!primerError) {
+                            primerError = visibleInput;
+                        }
+                    }
+                } else {
+                    // Restauramos los colores si el usuario ya lo rellenó
+                    const idVisible = hiddenInput.id.replace('hidden_', 'visible_');
+                    const visibleInput = document.getElementById(idVisible);
+                    if (visibleInput) {
+                        visibleInput.style.borderColor = '#cbd5e1';
+                        visibleInput.style.backgroundColor = '#ffffff';
+                    }
+                }
+            });
+
+            if (hayError) {
+                e.preventDefault(); // Detenemos el envío al servidor
+                alert('Por favor, selecciona un valor en todos los campos desplegables obligatorios marcados con asterisco.');
+                if (primerError) {
+                    primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Simulamos un click para abrir el modal del campo que falta
+                    setTimeout(() => primerError.click(), 500); 
+                }
+            }
+        });
+    });
 </script>

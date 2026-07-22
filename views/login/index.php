@@ -65,6 +65,29 @@
             box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.1);
             background-color: #ffffff;
         }
+
+        /* --- NUEVOS ESTILOS PARA EL CAMPO CONTRASEÑA --- */
+        .contenedor-password {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .contenedor-password input {
+            padding-right: 40px; /* Dejamos espacio para que el texto no pise el icono */
+        }
+        .icono-ver-password {
+            position: absolute;
+            right: 12px;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.2s;
+        }
+        .icono-ver-password:hover {
+            color: #0f4c81;
+        }
+        /* ----------------------------------------------- */
+
         .btn-entrar {
             width: 100%;
             background-color: #0f4c81;
@@ -148,10 +171,13 @@
                 <input type="email" id="email" name="email" placeholder="usuario@empresa.com" required>
             </div>
 
+            <!-- CAMBIOS APLICADOS EN EL CAMPO CONTRASEÑA -->
             <div class="grupo-form">
                 <label for="contraseña">Contraseña</label>
-                <!-- OJO: El name="contraseña" coincide con lo que pide tu controlador -->
-                <input type="password" id="contraseña" name="contraseña" placeholder="••••••••" required>
+                <div class="contenedor-password">
+                    <input type="password" id="contraseña" name="contraseña" placeholder="••••••••" required>
+                    <i class="fa-solid fa-eye icono-ver-password" id="togglePassword"></i>
+                </div>
             </div>
 
             <button type="submit" class="btn-entrar">
@@ -166,5 +192,22 @@
         </div>
     </div>
 
+    <!-- SCRIPT PARA MOSTRAR/OCULTAR CONTRASEÑA -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('contraseña');
+
+            togglePassword.addEventListener('click', function () {
+                // Alternamos entre el tipo 'password' y 'text'
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                
+                // Cambiamos el icono del ojo
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+        });
+    </script>
 </body>
 </html>

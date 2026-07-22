@@ -1,6 +1,5 @@
 <div class="cabecera-modulo">
     <h1>Directorio de Inventario</h1>
-    <!-- Este botón lleva al formulario de alta -->
     <a href="/index.php?controller=articulo&action=crear" class="btn-primario">+ Nuevo Inventario</a>
 </div>
 <div class="contenedor-tabla">
@@ -21,21 +20,40 @@
                     </td>
                     <td><strong><?php echo htmlspecialchars($art['denominacion']); ?></strong></td>
                     
-                    <!-- NUEVA CELDA DE ATRIBUTOS FORMATEADOS -->
                     <td style="max-width: 400px;">
                         <div class="contenedor-atributos">
                             <?php 
                             $datos = json_decode($art['datos_dinamicos'], true);
                             if (is_array($datos) && !empty($datos)): 
                                 foreach ($datos as $clave => $valor): 
-                                    // Ocultamos los campos vacíos para que quede más limpio
                                     if ($valor !== '' && $valor !== null):
-                                        // Formateamos la clave (ej: "marca_coche" -> "Marca Coche")
                                         $etiqueta = ucwords(str_replace('_', ' ', $clave));
+                                        
+                                        // ----------------------------------------------------
+                                        // LÓGICA DE FORMATEO (FECHAS Y DICCIONARIOS)
+                                        // ----------------------------------------------------
+                                        $valor_mostrar = htmlspecialchars($valor);
+                                        
+                                        // 1. Detectar si es una fecha (Formato YYYY-MM-DD)
+                                        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $valor)) {
+                                            $valor_mostrar = date('d/m/Y', strtotime($valor));
+                                        } 
+                                        // 2. Detectar si es un código de la tabla de ayudas
+                                        // (Requiere que el controlador envíe $opciones_tablas a esta vista)
+                                        elseif (isset($opciones_tablas)) {
+                                            foreach ($opciones_tablas as $tabla => $opciones) {
+                                                foreach ($opciones as $opt) {
+                                                    if ($opt['codigo'] === $valor) {
+                                                        $valor_mostrar = htmlspecialchars($valor . ' (' . $opt['descripcion'] . ')');
+                                                        break 2; // Salimos de ambos bucles al encontrarlo
+                                                    }
+                                                }
+                                            }
+                                        }
                             ?>
                                         <span class="attr-badge">
                                             <strong><?php echo htmlspecialchars($etiqueta); ?>:</strong> 
-                                            <?php echo htmlspecialchars($valor); ?>
+                                            <?php echo $valor_mostrar; ?>
                                         </span>
                             <?php 
                                     endif;
@@ -48,9 +66,15 @@
                     </td>
                     
                     <td class="celda-acciones">
+                        <!-- NUEVO BOTÓN VER -->
+                        <a href="/index.php?controller=articulo&action=ver&prefijo=<?php echo urlencode($art['prefijo_tipo']); ?>&denominacion=<?php echo urlencode($art['denominacion']); ?>" class="btn-sm" style="background-color: #0284c7; color: white; border: none; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-size: 0.9em; margin-right: 4px;">
+                            <i class="fa-solid fa-eye"></i> Ver
+                        </a>
+                        
                         <a href="/index.php?controller=articulo&action=editar&prefijo=<?php echo urlencode($art['prefijo_tipo']); ?>&denominacion=<?php echo urlencode($art['denominacion']); ?>" class="btn-sm btn-editar">
                             <i class="fa-solid fa-pen"></i> Editar
                         </a>
+                        
                         <a href="/index.php?controller=articulo&action=eliminar&prefijo=<?php echo urlencode($art['prefijo_tipo']); ?>&denominacion=<?php echo urlencode($art['denominacion']); ?>" onclick="return confirm('¿Borrar registro?');" class="btn-sm btn-eliminar">
                             <i class="fa-solid fa-trash"></i>
                         </a>

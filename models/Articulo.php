@@ -40,5 +40,34 @@ class Articulo {
         $stmt->bind_param("ssi", $prefijo_tipo, $denominacion, $idEmpresa);
         return $stmt->execute();
     }
+    public function obtenerTodasTablasLineas($idEmpresa) {
+        // Consultamos todas las líneas de las tablas maestras para la empresa activa
+        $stmt = $this->conexion->prepare("SELECT codigoCabecera, codigo, descripcion FROM GTablasLineas WHERE idEmpresa = ?");
+        $stmt->bind_param("i", $idEmpresa);
+        $stmt->execute();
+        $resultado = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        // Agrupamos los resultados usando el codigoCabecera como clave
+        // El array final tendrá esta estructura: 
+        // ['MARCAS COCHE' => [ ['codigo' => '01', 'descripcion' => 'SEAT'], ... ]]
+        $opciones_agrupadas = [];
+        
+        foreach ($resultado as $fila) {
+            $cabecera = $fila['codigoCabecera'];
+            
+            // Si la cabecera aún no existe en nuestro array, la inicializamos
+            if (!isset($opciones_agrupadas[$cabecera])) {
+                $opciones_agrupadas[$cabecera] = [];
+            }
+            
+            // Añadimos el código y la descripción al grupo correspondiente
+            $opciones_agrupadas[$cabecera][] = [
+                'codigo' => $fila['codigo'],
+                'descripcion' => $fila['descripcion']
+            ];
+        }
+
+        return $opciones_agrupadas;
+    }
 }
 ?>

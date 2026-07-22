@@ -14,9 +14,54 @@ class ArticuloController {
         $this->modeloTablas = new Tabla($conexion);
     }
 
-    public function index() {
-        $articulos = $this->modelo->obtenerTodos($_SESSION['idEmpresa']);
+public function index()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
+
+        // Extraemos los artículos
+        $articulos = $this->modelo->obtenerTodos($idEmpresaActiva);
+        
+        // ¡CRUCIAL PARA EL LISTADO! Extraemos las opciones para traducir los códigos en la tabla
+        $opciones_tablas = $this->modelo->obtenerTodasTablasLineas($idEmpresaActiva);
+
         $contenido_vista = '../views/articulos/index.php';
+        require_once '../views/layout/master.php';
+    }
+
+public function ver()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // 1. Recogemos las claves primarias enviadas por la URL
+        $prefijo = $_GET['prefijo'] ?? null;
+        $denominacion = $_GET['denominacion'] ?? null;
+        $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
+
+        // Validamos que no falte nada
+        if (!$prefijo || !$denominacion) {
+            die("Error: Faltan parámetros para mostrar el registro.");
+        }
+
+        // 2. Buscamos el artículo exacto en la base de datos
+        // *Nota: Asegúrate de usar el nombre del método correcto que tengas en tu modelo
+        $articulo = $this->modelo->obtenerPorId($prefijo, $denominacion, $idEmpresaActiva);
+
+        if (!$articulo) {
+            die("Error: El registro de inventario que intentas ver no existe.");
+        }
+
+        // 3. Obtenemos los diccionarios para que la vista pueda traducir COD (DESCRIPCION)
+        // *Nota: Utiliza la misma función que usas en el método crear() o editar() de este controlador
+        $opciones_tablas = $this->modelo->obtenerTodasTablasLineas($idEmpresaActiva);
+
+        // 4. Cargamos la vista de la ficha
+        $contenido_vista = '../views/articulos/ver.php';
         require_once '../views/layout/master.php';
     }
 

@@ -28,7 +28,7 @@
                         <td><?php echo htmlspecialchars($centro['poblado']); ?></td>
                         
                         <td class="celda-acciones">
-                            <a href="/index.php?controller=centro&action=editar&id=<?php echo $centro['id']; ?>" class="btn-sm btn-editar">
+                            <a href="/index.php?controller=centro&action=editar&id=<?php echo $centro['id']; ?>&idCliente=<?php echo $centro['idCliente']; ?>" class="btn-sm btn-editar">
                                 <i class="fa-solid fa-pen"></i> Editar
                             </a>
                             <a href="/index.php?controller=centro&action=eliminar&id=<?php echo $centro['id']; ?>&idCliente=<?php echo $centro['idCliente']; ?>" onclick="return confirm('¿Eliminar este centro?');" class="btn-sm btn-eliminar">

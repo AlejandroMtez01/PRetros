@@ -129,4 +129,61 @@ class EmpleadoController
         header("Location: /index.php?controller=empleado&action=index");
         exit;
     }
+    // ==========================================
+    // VER HORARIOS Y SUMATORIOS DEL EMPLEADO
+    // ==========================================
+    // ==========================================
+    // VER HORARIOS Y SUMATORIOS DEL EMPLEADO
+    // ==========================================
+    public function verHorarios($id)
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
+
+        // 1. Obtenemos los datos del empleado
+        $empleado = $this->modelo->obtenerPorId($id);
+        if (!$empleado) {
+            die("Error: El empleado no existe.");
+        }
+
+        // 2. Recogemos los filtros de fecha si el usuario ha buscado algo
+        $fechaInicio = $_GET['fecha_inicio'] ?? null;
+        $fechaFin = $_GET['fecha_fin'] ?? null;
+
+        // 3. Extraemos las líneas pasando las fechas al modelo
+        $lineas = $this->modelo->obtenerHorasEmpleado($id, $idEmpresaActiva, $fechaInicio, $fechaFin);
+
+        // 4. Agrupamos las horas por día
+        $dias_trabajados = [];
+        
+        foreach ($lineas as $linea) {
+            $fecha = $linea['fecha'];
+            
+            if (!isset($dias_trabajados[$fecha])) {
+                $dias_trabajados[$fecha] = [
+                    'lineas' => [],
+                    'minutos_totales' => 0
+                ];
+            }
+            
+            $dias_trabajados[$fecha]['lineas'][] = $linea;
+            
+            $inicio = strtotime($linea['horaDesde']);
+            $fin = strtotime($linea['horaHasta']);
+            
+            if ($fin < $inicio) {
+                $fin += 86400; 
+            }
+            
+            $minutos = round(($fin - $inicio) / 60);
+            $dias_trabajados[$fecha]['minutos_totales'] += $minutos;
+        }
+
+        // 5. Cargamos la vista pasando también las variables de fecha
+        $contenido_vista = '../views/empleados/ver_horarios.php';
+        require_once '../views/layout/master.php';
+    }
 }

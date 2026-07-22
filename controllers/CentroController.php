@@ -44,8 +44,8 @@ class CentroController {
 
             $datos = [
                 'idCliente' => $idCliente,
-                'direccion' => trim($_POST['direccion']),
-                'poblado'   => trim($_POST['poblado']),
+                'direccion' => ucfirst(trim($_POST['direccion'])),
+                'poblado'   => ucfirst(trim($_POST['poblado'])),
                 'idUsuario' => $_SESSION['usuario_id'],
                 'idEmpresa' => $_SESSION['idEmpresa']
             ];
@@ -92,8 +92,8 @@ class CentroController {
             $errores = [];
 
             $datos = [
-                'direccion' => trim($_POST['direccion']),
-                'poblado'   => trim($_POST['poblado']),
+                'direccion' => ucfirst(trim($_POST['direccion'])),
+                'poblado'   => ucfirst(trim($_POST['poblado'])),
                 'idUsuario' => $_SESSION['usuario_id']
             ];
 

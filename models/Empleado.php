@@ -97,5 +97,51 @@ class Empleado {
         
         return $stmt->execute();
     }
+
+    // ==========================================
+    // EXTRAER HISTORIAL DE HORAS (SOLO PARTES FILTRADO)
+    // ==========================================
+    public function obtenerHorasEmpleado($idEmpleado, $idEmpresa, $fechaInicio = null, $fechaFin = null) {
+        $sql = "
+            SELECT 
+                'Parte' AS documento_origen,
+                p.id AS id_documento,
+                p.fechaDesde AS fecha,
+                lp.horaDesde,
+                lp.horaHasta,
+                lp.categoriaProfesional AS puesto,
+                c.razonSocial AS cliente
+            FROM Partes p
+            JOIN lineasPartes lp ON p.id = lp.idParte
+            LEFT JOIN Clientes c ON lp.idCliente = c.id
+            WHERE p.idEmpleado = ? AND p.idEmpresa = ?
+        ";
+
+        // Preparamos las variables dinámicas para el bind_param
+        $tipos = "ii";
+        $parametros = [$idEmpleado, $idEmpresa];
+
+        if (!empty($fechaInicio)) {
+            $sql .= " AND p.fechaDesde >= ?";
+            $tipos .= "s";
+            $parametros[] = $fechaInicio;
+        }
+
+        if (!empty($fechaFin)) {
+            $sql .= " AND p.fechaDesde <= ?";
+            $tipos .= "s";
+            $parametros[] = $fechaFin;
+        }
+
+        $sql .= " ORDER BY fecha DESC, horaDesde ASC";
+
+        $stmt = $this->conexion->prepare($sql);
+        
+        // Desempaquetamos el array de parámetros dinámicos (...$parametros)
+        $stmt->bind_param($tipos, ...$parametros);
+        $stmt->execute();
+        
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
 }
 ?>
