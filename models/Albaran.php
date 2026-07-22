@@ -69,75 +69,7 @@ class Albaran
     // ====================================================
     // GUARDAR ALBARÁN Y SUS LÍNEAS (TRANSACCIÓN)
     // ====================================================
-    public function guardarAlbaranCompleto($cabecera, $lineas)
-    {
-
-       
-
-
-
-        // Iniciamos transacción para que no se guarde el albarán si fallan las líneas
-        $this->conexion->begin_transaction();
-
-        try {
-            // 1. Insertamos la Cabecera del Albarán
-            $sqlCabecera = "INSERT INTO Albaranes (numAlbaran, idCliente, observaciones, idCentro, fecha, idUsuario, idEmpresa) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-            $stmtCabecera = $this->conexion->prepare($sqlCabecera);
-            $stmtCabecera->bind_param(
-                "sisssii",
-                $cabecera['numAlbaran'],
-                $cabecera['idCliente'],
-                $cabecera['observaciones'],
-                $cabecera['idCentro'],
-                $cabecera['fecha'],
-                $cabecera['idUsuario'],
-                $cabecera['idEmpresa']
-            );
-            $stmtCabecera->execute();
-
-            // Recuperamos el ID del albarán recién creado
-            $idAlbaran = $this->conexion->insert_id;
-
-            // 2. Insertamos las Líneas del Albarán
-            if (!empty($lineas)) {
-                $sqlLinea = "INSERT INTO lineasAlbaran (idAlbaran, idEmpleado, horaDesde, horaHasta, categoriaProfesional, vehiculoUtilizado, importe, idUsuario, idEmpresa) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                $stmtLinea = $this->conexion->prepare($sqlLinea);
-
-                foreach ($lineas as $linea) {
-                    // Validamos los datos opcionales (por si el empleado no es maquinista o no hay importe)
-                    $vehiculo = !empty($linea['vehiculoUtilizado']) ? $linea['vehiculoUtilizado'] : null;
-                    $importe = !empty($linea['importe']) ? $linea['importe'] : null;
-
-                    // "iissssdsii" -> Integer, Integer, String, String, String, Integer/Null, Double/Null, Integer, Integer
-                    $stmtLinea->bind_param(
-                        "iisssssii",
-                        $idAlbaran,
-                        $linea['idEmpleado'],
-                        $linea['horaDesde'],
-                        $linea['horaHasta'],
-                        $linea['categoriaProfesional'],
-                        $vehiculo,
-                        $importe,
-                        $cabecera['idUsuario'],
-                        $cabecera['idEmpresa']
-                    );
-                    $stmtLinea->execute();
-                }
-            }
-
-            // Confirmamos que todo ha ido bien
-            $this->conexion->commit();
-            return true;
-        } catch (Exception $e) {
-            // Si algo falla, deshacemos todos los cambios en la base de datos
-            $this->conexion->rollback();
-            error_log("Error al guardar el albarán completo: " . $e->getMessage());
-            return $e->getMessage();
-        }
-    }
+    
 
     // ====================================================
     // OBTENER UN ALBARÁN Y SUS LÍNEAS POR ID
@@ -179,61 +111,132 @@ class Albaran
     // VALIDACIONES
     
 
+   // ====================================================
+    // GUARDAR ALBARÁN Y SUS LÍNEAS + MATERIALES (ESTRICTO)
     // ====================================================
-    // ACTUALIZAR ALBARÁN (TRANSACCIÓN)
-    // ====================================================
-    public function actualizarAlbaranCompleto($idAlbaran, $cabecera, $lineas)
+    public function guardarAlbaranCompleto($cabecera, $lineas, $materiales = [])
     {
-
-
         $this->conexion->begin_transaction();
+
         try {
-            // 1. Actualizamos la Cabecera
-            $sqlCabecera = "UPDATE Albaranes 
-                            SET idCliente = ?, observaciones = ?, idCentro = ?, fecha = ? 
-                            WHERE id = ? AND idEmpresa = ?";
-
+            // 1. Cabecera
+            $sqlCabecera = "INSERT INTO Albaranes (numAlbaran, idCliente, observaciones, idCentro, fecha, idUsuario, idEmpresa) VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmtCabecera = $this->conexion->prepare($sqlCabecera);
-            $stmtCabecera->bind_param(
-                "isssii",
-                $cabecera['idCliente'],
-                $cabecera['observaciones'],
-                $cabecera['idCentro'],
-                $cabecera['fecha'],
-                $idAlbaran,
-                $cabecera['idEmpresa']
-            );
-            $stmtCabecera->execute();
+            if (!$stmtCabecera) throw new Exception("Error preparando cabecera: " . $this->conexion->error);
+            
+            $stmtCabecera->bind_param("sisssii", $cabecera['numAlbaran'], $cabecera['idCliente'], $cabecera['observaciones'], $cabecera['idCentro'], $cabecera['fecha'], $cabecera['idUsuario'], $cabecera['idEmpresa']);
+            if (!$stmtCabecera->execute()) throw new Exception("Error BD (Cabecera): " . $stmtCabecera->error);
 
-            // 2. Borramos las líneas antiguas
-            $sqlDelete = "DELETE FROM lineasAlbaran WHERE idAlbaran = ? AND idEmpresa = ?";
-            $stmtDelete = $this->conexion->prepare($sqlDelete);
-            $stmtDelete->bind_param("ii", $idAlbaran, $cabecera['idEmpresa']);
-            $stmtDelete->execute();
+            $idAlbaran = $this->conexion->insert_id;
 
-            // 3. Insertamos las líneas nuevas/modificadas
+            // 2. Líneas de Empleados
             if (!empty($lineas)) {
-                $sqlLinea = "INSERT INTO lineasAlbaran (idAlbaran, idEmpleado, horaDesde, horaHasta, categoriaProfesional, vehiculoUtilizado, importe, idUsuario, idEmpresa) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $sqlLinea = "INSERT INTO lineasAlbaran (idAlbaran, idEmpleado, horaDesde, horaHasta, categoriaProfesional, vehiculoUtilizado, importe, idUsuario, idEmpresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmtLinea = $this->conexion->prepare($sqlLinea);
-
+                if (!$stmtLinea) throw new Exception("Error SQL Líneas: " . $this->conexion->error);
+                
                 foreach ($lineas as $linea) {
                     $vehiculo = !empty($linea['vehiculoUtilizado']) ? $linea['vehiculoUtilizado'] : null;
                     $importe = !empty($linea['importe']) ? $linea['importe'] : null;
+                    
+                    $stmtLinea->bind_param("iisssssii", $idAlbaran, $linea['idEmpleado'], $linea['horaDesde'], $linea['horaHasta'], $linea['categoriaProfesional'], $vehiculo, $importe, $cabecera['idUsuario'], $cabecera['idEmpresa']);
+                    if (!$stmtLinea->execute()) throw new Exception("Error BD (Línea Empleado): " . $stmtLinea->error);
+                }
+            }
 
-                    $stmtLinea->bind_param(
-                        "iisssssii",
-                        $idAlbaran,
-                        $linea['idEmpleado'],
-                        $linea['horaDesde'],
-                        $linea['horaHasta'],
-                        $linea['categoriaProfesional'],
-                        $vehiculo,
-                        $importe,
-                        $cabecera['idUsuario'],
-                        $cabecera['idEmpresa']
+            // 3. Líneas de Materiales
+            if (!empty($materiales)) {
+                $sqlMat = "INSERT INTO lineasAlbaranMateriales (idAlbaran, denominacionArticulo, unidades, precioUnitario, importeTotal, idEmpresa, idUsuario) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $stmtMat = $this->conexion->prepare($sqlMat);
+                if (!$stmtMat) throw new Exception("Error SQL Materiales: " . $this->conexion->error);
+                
+                foreach ($materiales as $mat) {
+                    $stmtMat->bind_param(
+                        "isdddii", 
+                        $idAlbaran, 
+                        $mat['denominacionArticulo'], 
+                        $mat['unidades'], 
+                        $mat['precioUnitario'], 
+                        $mat['importeTotal'], 
+                        $cabecera['idEmpresa'], 
+                        $cabecera['idUsuario']
                     );
-                    $stmtLinea->execute();
+                    if (!$stmtMat->execute()) {
+                        throw new Exception("Error BD al insertar Material (" . htmlspecialchars($mat['denominacionArticulo']) . "): " . $stmtMat->error);
+                    }
+                }
+            }
+
+            $this->conexion->commit();
+            return $idAlbaran; 
+        } catch (Exception $e) {
+            $this->conexion->rollback();
+            return $e->getMessage(); // Devuelve el error exacto al Controlador
+        }
+    }
+
+    // ====================================================
+    // ACTUALIZAR ALBARÁN Y MATERIALES (ESTRICTO)
+    // ====================================================
+    public function actualizarAlbaranCompleto($idAlbaran, $cabecera, $lineas, $materiales = [])
+    {
+        $this->conexion->begin_transaction();
+        
+        try {
+            // 1. Cabecera
+            $sqlCabecera = "UPDATE Albaranes SET idCliente = ?, observaciones = ?, idCentro = ?, fecha = ? WHERE id = ? AND idEmpresa = ?";
+            $stmtCabecera = $this->conexion->prepare($sqlCabecera);
+            if (!$stmtCabecera) throw new Exception("Error SQL Cabecera: " . $this->conexion->error);
+            
+            $stmtCabecera->bind_param("isssii", $cabecera['idCliente'], $cabecera['observaciones'], $cabecera['idCentro'], $cabecera['fecha'], $idAlbaran, $cabecera['idEmpresa']);
+            if (!$stmtCabecera->execute()) throw new Exception("Error BD actualizando Cabecera: " . $stmtCabecera->error);
+
+            // 2. Borrar y reinsertar líneas de empleados
+            $stmtDelete = $this->conexion->prepare("DELETE FROM lineasAlbaran WHERE idAlbaran = ? AND idEmpresa = ?");
+            if (!$stmtDelete) throw new Exception("Error SQL Borrar Empleados: " . $this->conexion->error);
+            $stmtDelete->bind_param("ii", $idAlbaran, $cabecera['idEmpresa']);
+            if (!$stmtDelete->execute()) throw new Exception("Error BD borrando Empleados: " . $stmtDelete->error);
+
+            if (!empty($lineas)) {
+                $sqlLinea = "INSERT INTO lineasAlbaran (idAlbaran, idEmpleado, horaDesde, horaHasta, categoriaProfesional, vehiculoUtilizado, importe, idUsuario, idEmpresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $stmtLinea = $this->conexion->prepare($sqlLinea);
+                if (!$stmtLinea) throw new Exception("Error SQL insertar Empleados: " . $this->conexion->error);
+                
+                foreach ($lineas as $linea) {
+                    $vehiculo = !empty($linea['vehiculoUtilizado']) ? $linea['vehiculoUtilizado'] : null;
+                    $importe = !empty($linea['importe']) ? $linea['importe'] : null;
+                    
+                    $stmtLinea->bind_param("iisssssii", $idAlbaran, $linea['idEmpleado'], $linea['horaDesde'], $linea['horaHasta'], $linea['categoriaProfesional'], $vehiculo, $importe, $cabecera['idUsuario'], $cabecera['idEmpresa']);
+                    if (!$stmtLinea->execute()) throw new Exception("Error BD insertando Empleado: " . $stmtLinea->error);
+                }
+            }
+
+            // 3. Borrar y reinsertar materiales
+            $stmtDeleteMat = $this->conexion->prepare("DELETE FROM lineasAlbaranMateriales WHERE idAlbaran = ? AND idEmpresa = ?");
+            if (!$stmtDeleteMat) throw new Exception("Error SQL Borrar Materiales: " . $this->conexion->error);
+            
+            $stmtDeleteMat->bind_param("ii", $idAlbaran, $cabecera['idEmpresa']);
+            if (!$stmtDeleteMat->execute()) throw new Exception("Error BD borrando Materiales antiguos: " . $stmtDeleteMat->error);
+
+            if (!empty($materiales)) {
+                $sqlMat = "INSERT INTO lineasAlbaranMateriales (idAlbaran, denominacionArticulo, unidades, precioUnitario, importeTotal, idEmpresa, idUsuario) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $stmtMat = $this->conexion->prepare($sqlMat);
+                if (!$stmtMat) throw new Exception("Error SQL insertar Materiales: " . $this->conexion->error);
+                
+                foreach ($materiales as $mat) {
+                    $stmtMat->bind_param(
+                        "isdddii", 
+                        $idAlbaran, 
+                        $mat['denominacionArticulo'], 
+                        $mat['unidades'], 
+                        $mat['precioUnitario'], 
+                        $mat['importeTotal'], 
+                        $cabecera['idEmpresa'], 
+                        $cabecera['idUsuario']
+                    );
+                    if (!$stmtMat->execute()) {
+                        throw new Exception("Error BD al insertar Material (" . htmlspecialchars($mat['denominacionArticulo']) . "): " . $stmtMat->error);
+                    }
                 }
             }
 
@@ -289,5 +292,20 @@ class Albaran
             return $e->getMessage();
         }
     }
+// ====================================================
+    // CONSULTAR MATERIALES POR ALBARÁN
+    // ====================================================
+    public function obtenerMateriales($idAlbaran, $idEmpresa)
+    {
+        $sql = "SELECT * FROM lineasAlbaranMateriales WHERE idAlbaran = ? AND idEmpresa = ?";
+        $stmt = $this->conexion->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("ii", $idAlbaran, $idEmpresa);
+            $stmt->execute();
+            return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        }
+        return [];
+    }
+    
 } // <-- Fin de la clase Albaran
 

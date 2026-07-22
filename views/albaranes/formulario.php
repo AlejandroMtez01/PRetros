@@ -1,16 +1,10 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 $mensaje_error = $_SESSION['error_guardado'] ?? null;
 unset($_SESSION['error_guardado']);
 
-// Recogemos la variable de errores (si el controlador la ha pasado)
 $erroresLineas = isset($erroresLineas) ? $erroresLineas : [];
 
-// ==========================================
-// DETECCIÓN DE MODO: CREAR O EDITAR
-// ==========================================
 $esEdicion = isset($albaran) && !empty($albaran['id']);
 $tituloPantalla = $esEdicion ? 'Editar Albarán: ' . htmlspecialchars($albaran['numAlbaran']) : 'Crear Nuevo Albarán';
 $accionFormulario = $esEdicion ? 'actualizar' : 'guardar';
@@ -26,7 +20,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         </a>
     </div>
 
-    <!-- Bloque de Error -->
     <?php if ($mensaje_error): ?>
         <div class="alerta-error">
             <i class="fa-solid fa-triangle-exclamation"></i>
@@ -40,9 +33,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
             <input type="hidden" name="idAlbaran" value="<?php echo $albaran['id']; ?>">
         <?php endif; ?>
 
-        <!-- ========================================== -->
-        <!-- CABECERA DEL ALBARÁN                       -->
-        <!-- ========================================== -->
+        <!-- CABECERA -->
         <fieldset>
             <legend>Datos del Albarán</legend>
             <div class="grid-3">
@@ -54,24 +45,20 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     <label>Fecha</label>
                     <input type="date" name="fecha" value="<?php echo htmlspecialchars(substr($albaran['fecha'] ?? '', 0, 10)); ?>" required>
                 </div>
-
                 <div class="form-group">
                     <label>Cliente</label>
                     <div class="input-con-boton">
                         <input type="hidden" name="idCliente" id="idClienteInput" value="<?php echo $albaran['idCliente'] ?? ''; ?>" required>
-                        <!-- Se añade el 'name' para no perder el dato en las validaciones -->
                         <input type="text" name="nombreCliente" id="nombreClienteInput" value="<?php echo htmlspecialchars($albaran['nombreCliente'] ?? ''); ?>" placeholder="Seleccione cliente..." readonly required>
                         <button type="button" class="btn-secundario btn-icono" onclick="abrirModal('modalClientes')">
                             <i class="fa-solid fa-building"></i> Buscar
                         </button>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Centro de Trabajo</label>
                     <div class="input-con-boton">
                         <input type="hidden" name="idCentro" id="idCentroInput" value="<?php echo $albaran['idCentro'] ?? ''; ?>" required>
-                        <!-- Se añade el 'name' para no perder el dato en las validaciones -->
                         <input type="text" name="nombreCentro" id="nombreCentroInput" value="<?php echo htmlspecialchars($albaran['nombreCentro'] ?? ''); ?>" placeholder="Seleccione primero un cliente..." readonly required>
                         <button type="button" id="btnBuscarCentro" class="btn-secundario btn-icono" onclick="abrirModal('modalCentros')" <?php echo empty($albaran['idCliente']) ? 'disabled' : ''; ?>>
                             <i class="fa-solid fa-location-dot"></i> Buscar
@@ -87,9 +74,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
 
         <br>
 
-        <!-- ========================================== -->
-        <!-- LÍNEAS DEL ALBARÁN                         -->
-        <!-- ========================================== -->
+        <!-- LÍNEAS DE EMPLEADOS -->
         <fieldset>
             <legend>Líneas de Trabajo</legend>
             <button type="button" class="btn-secundario" onclick="abrirModal('modalEmpleados')" style="margin-bottom: 15px;">
@@ -110,27 +95,19 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 </thead>
                 <tbody id="cuerpo-lineas-albaran">
                     <?php
-                    $maxIdFila = 0; // Para saber por dónde tiene que seguir contando el JS
-
+                    $maxIdFila = 0;
                     if (!empty($lineas)):
                         foreach ($lineas as $idFila => $l):
-                            // Si $idFila es un string numérico o un int (viene del POST o es nuevo DB loop), lo respetamos
                             $idFila = is_numeric($idFila) ? (int)$idFila : ++$maxIdFila;
-                            if ($idFila > $maxIdFila) {
-                                $maxIdFila = $idFila;
-                            }
+                            if ($idFila > $maxIdFila) { $maxIdFila = $idFila; }
 
-                            // Rescatamos el nombre si viene del POST o si viene directo de la BD
                             $nombreEmpleadoMostrado = $l['empNombreCompleto'] ?? trim(($l['empNombre'] ?? '') . ' ' . ($l['empApellido'] ?? ''));
 
                             $nombreVehiculoCargado = '';
                             if (!empty($l['vehiculoUtilizado'])) {
-                                // Buscamos por la columna 'denominacion' que es la que usamos como ID
                                 foreach ($vehiculos_precio_hora as $veh) {
-                                    // Comparamos el valor guardado ($l['vehiculoUtilizado']) con la denominación del catálogo
                                     if (trim($veh['denominacion']) == trim($l['vehiculoUtilizado'])) {
-                                        $nombreVehiculoCargado = htmlspecialchars($veh['denominacion']);
-                                        break;
+                                        $nombreVehiculoCargado = htmlspecialchars($veh['denominacion']); break;
                                     }
                                 }
                             }
@@ -138,7 +115,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                             $esMaq = (strtolower($l['categoriaProfesional'] ?? '') === 'maquinista');
                             $tieneError = isset($erroresLineas[$idFila]);
                     ?>
-                            <!-- Aplicamos clase roja si la fila tiene error -->
                             <tr id="linea_<?php echo $idFila; ?>" class="<?php echo $tieneError ? 'fila-error' : ''; ?>">
                                 <td>
                                     <input type="hidden" name="lineas[<?php echo $idFila; ?>][idEmpleado]" value="<?php echo $l['idEmpleado']; ?>">
@@ -172,7 +148,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                 </td>
                             </tr>
 
-                            <!-- INYECCIÓN DEL MENSAJE DE ERROR -->
                             <?php if ($tieneError): ?>
                                 <tr class="fila-error-mensaje" id="error_linea_<?php echo $idFila; ?>">
                                     <td colspan="7">
@@ -181,6 +156,57 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                 </tr>
                             <?php endif; ?>
 
+                    <?php
+                        endforeach;
+                    endif;
+                    ?>
+                </tbody>
+            </table>
+        </fieldset>
+
+        <!-- LÍNEAS DE MATERIALES -->
+        <fieldset style="margin-top: 20px;">
+            <legend>Materiales Utilizados</legend>
+            <button type="button" class="btn-secundario" onclick="abrirModal('modalMateriales')" style="margin-bottom: 15px;">
+                <i class="fa-solid fa-box-open"></i> Añadir Material
+            </button>
+
+            <table class="tabla-datos" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Precio Unidad (€)</th>
+                        <th>Unidades</th>
+                        <th>Total (€)</th>
+                        <th style="text-align: center;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-lineas-materiales">
+                    <?php
+                    $contMat = 0;
+                    if (!empty($materiales)):
+                        foreach ($materiales as $idFila => $m):
+                            $idFilaM = is_numeric($idFila) ? (int)$idFila : ++$contMat;
+                            if ($idFilaM > $contMat) $contMat = $idFilaM;
+                    ?>
+                            <tr id="linea_mat_<?php echo $idFilaM; ?>">
+                                <td>
+                                    <input type="hidden" name="materiales[<?php echo $idFilaM; ?>][denominacionArticulo]" value="<?php echo htmlspecialchars($m['denominacionArticulo']); ?>">
+                                    <strong><?php echo htmlspecialchars($m['denominacionArticulo']); ?></strong>
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" class="precio-mat" id="precio_mat_<?php echo $idFilaM; ?>" name="materiales[<?php echo $idFilaM; ?>][precioUnitario]" value="<?php echo $m['precioUnitario']; ?>" readonly style="width: 100px; background: #e2e8f0;">
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" id="unidades_mat_<?php echo $idFilaM; ?>" name="materiales[<?php echo $idFilaM; ?>][unidades]" value="<?php echo $m['unidades']; ?>" required oninput="calcularTotalMaterial(<?php echo $idFilaM; ?>)" style="width: 100px;">
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" id="total_mat_<?php echo $idFilaM; ?>" name="materiales[<?php echo $idFilaM; ?>][importeTotal]" value="<?php echo $m['importeTotal']; ?>" readonly style="width: 100px; background: #e2e8f0; font-weight: bold; color: #0f4c81;">
+                                </td>
+                                <td style="text-align:center;">
+                                    <button type="button" class="btn-sm btn-eliminar" onclick="eliminarLineaMaterial(<?php echo $idFilaM; ?>)"><i class="fa-solid fa-trash"></i></button>
+                                </td>
+                            </tr>
                     <?php
                         endforeach;
                     endif;
@@ -198,7 +224,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
 <!-- MODALES DEL SISTEMA                        -->
 <!-- ========================================== -->
 
-<!-- Modal Categorías (Puestos + Especial) -->
+<!-- Modal Categorías -->
 <div id="modalCategorias" class="modal" style="display: none;">
     <div class="modal-contenido">
         <h3>Seleccionar Categoría / Puesto</h3>
@@ -220,7 +246,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                             <button type="button" class="btn-principal" style="padding: 5px 10px;" onclick="seleccionarCategoria('Maquinista', true)">Seleccionar</button>
                         </td>
                     </tr>
-
                     <?php if (!empty($puestos)): foreach ($puestos as $puesto): ?>
                         <?php if ($puesto['descripcion'] == 'Maquinista') continue; ?>
                             <tr>
@@ -229,8 +254,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="seleccionarCategoria('<?php echo htmlspecialchars(addslashes($puesto['descripcion'])); ?>', false)">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach;
-                    endif; ?>
+                    <?php endforeach; endif; ?>
                 </tbody>
             </table>
         </div>
@@ -258,8 +282,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="seleccionarCliente(<?php echo $cli['id']; ?>, '<?php echo htmlspecialchars(addslashes($cli['denominacion'] ?? $cli['razonSocial'])); ?>')">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach;
-                    endif; ?>
+                    <?php endforeach; endif; ?>
                 </tbody>
             </table>
         </div>
@@ -287,8 +310,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(<?php echo $cen['id']; ?>, '<?php echo htmlspecialchars(addslashes($cen['denominacion'])); ?>')">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach;
-                    endif; ?>
+                    <?php endforeach; endif; ?>
                 </tbody>
             </table>
         </div>
@@ -318,8 +340,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="agregarLineaEmpleado(<?php echo $emp['id']; ?>, '<?php echo htmlspecialchars(addslashes($emp['nombre'] . ' ' . $emp['apellido1'])); ?>')">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach;
-                    endif; ?>
+                    <?php endforeach; endif; ?>
                 </tbody>
             </table>
         </div>
@@ -343,10 +364,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 </thead>
                 <tbody>
                     <?php if (!empty($vehiculos_precio_hora)): foreach ($vehiculos_precio_hora as $veh):
-                            // Capturamos la denominación limpiamente
                             $denominacion = htmlspecialchars($veh['denominacion']);
                             $denominacionJs = htmlspecialchars(addslashes($veh['denominacion']));
-
                             $prefijo = isset($veh['prefijo_tipo']) ? htmlspecialchars($veh['prefijo_tipo']) : 'VEHÍCULO';
                             $precioH = isset($veh['precio_hora_extraido']) ? number_format((float)$veh['precio_hora_extraido'], 2, ',', '.') . ' €' : 'N/A';
                     ?>
@@ -355,16 +374,48 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                 <td style="text-align: center;"><span style="background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: #475569; font-weight: bold;"><?php echo $prefijo; ?></span></td>
                                 <td style="text-align: center; color: #0f4c81; font-weight: bold;"><?php echo $precioH; ?></td>
                                 <td style="text-align: center;">
-                                    <!-- SOLUCIÓN: Pasamos la denominación dos veces (como valor interno y como texto visual) -->
                                     <button type="button" class="btn-sm btn-editar" onclick="seleccionarVehiculo('<?php echo $denominacionJs; ?>', '<?php echo $denominacionJs; ?>')">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach;
-                    endif; ?>
+                    <?php endforeach; endif; ?>
                 </tbody>
             </table>
         </div>
         <button type="button" class="btn-eliminar mt-15" onclick="cerrarModal('modalVehiculos')">Cancelar</button>
+    </div>
+</div>
+
+<!-- Modal Materiales -->
+<div id="modalMateriales" class="modal" style="display: none;">
+    <div class="modal-contenido">
+        <h3>Catálogo de Materiales</h3>
+        <div class="tabla-contenedor-scroll">
+            <table class="tabla-datos">
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th style="text-align: center;">Stock/Uds</th>
+                        <th style="text-align: center;">Precio Ud.</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($catalogoMateriales)): foreach ($catalogoMateriales as $catMat): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($catMat['nombre_extraido']); ?></td>
+                                <td style="text-align: center;"><?php echo htmlspecialchars($catMat['unidades_extraidas']); ?></td>
+                                <td style="text-align: center; font-weight: bold; color: #0f4c81;"><?php echo number_format($catMat['precio_extraido'], 2, ',', '.'); ?> €</td>
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn-sm btn-editar" onclick="agregarLineaMaterial('<?php echo htmlspecialchars(addslashes($catMat['nombre_extraido'])); ?>', <?php echo $catMat['precio_extraido']; ?>)">Añadir</button>
+                                </td>
+                            </tr>
+                    <?php endforeach; else: ?>
+                        <tr><td colspan="4" style="text-align: center; color: #64748b;">No hay materiales registrados en el inventario con este formato.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+        <button type="button" class="btn-eliminar mt-15" onclick="cerrarModal('modalMateriales')">Cancelar</button>
     </div>
 </div>
 
@@ -378,14 +429,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
     let filaVehiculoActiva = null;
     let filaCategoriaActiva = null;
 
-    function abrirModal(idModal) {
-        document.getElementById(idModal).style.display = 'flex';
-    }
-
-    function cerrarModal(idModal) {
-        document.getElementById(idModal).style.display = 'none';
-    }
-
+    function abrirModal(idModal) { document.getElementById(idModal).style.display = 'flex'; }
+    function cerrarModal(idModal) { document.getElementById(idModal).style.display = 'none'; }
 
     // --- Lógica Clientes/Centros ---
     function seleccionarCliente(id, nombre) {
@@ -405,10 +450,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
 
         fetch(`/index.php?controller=albaran&action=obtenerCentrosPorCliente&idCliente=${idCliente}`)
             .then(async response => {
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || 'Error desconocido del servidor');
-                }
+                if (!response.ok) throw new Error('Error del servidor');
                 return response.json();
             })
             .then(data => {
@@ -426,9 +468,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                             <td style="text-align: center;"><button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(${centro.id}, '${nombreSeguro}')">Seleccionar</button></td>
                         </tr>`;
                 });
-            }).catch(error => {
-                tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color: #b91c1c; font-weight: bold;">Error: ${error.message}</td></tr>`;
-            });
+            }).catch(error => { tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;">Error: ${error.message}</td></tr>`; });
     }
 
     function seleccionarCentro(id, direccion) {
@@ -446,7 +486,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
     function seleccionarCategoria(nombreCategoria, esMaquinista) {
         if (filaCategoriaActiva !== null) {
             document.getElementById('categoria_nombre_' + filaCategoriaActiva).value = nombreCategoria;
-
             const contenedorVehiculo = document.getElementById('vehiculo_container_' + filaCategoriaActiva);
             const inputVehiculoId = document.getElementById('vehiculo_id_' + filaCategoriaActiva);
             const inputVehiculoNombre = document.getElementById('vehiculo_nombre_' + filaCategoriaActiva);
@@ -460,7 +499,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 inputVehiculoId.value = '';
                 inputVehiculoNombre.value = '';
             }
-
             calcularImporte(filaCategoriaActiva);
             cerrarModal('modalCategorias');
             filaCategoriaActiva = null;
@@ -489,7 +527,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         const fila = document.createElement('tr');
         fila.id = 'linea_' + contadorLineas;
 
-        // Se envía un input oculto empNombreCompleto para conservarlo en validaciones de error
         fila.innerHTML = `
             <td>
                 <input type="hidden" name="lineas[${contadorLineas}][idEmpleado]" value="${idEmpleado}">
@@ -522,19 +559,18 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 <button type="button" class="btn-sm btn-eliminar" onclick="eliminarLinea(${contadorLineas})"><i class="fa-solid fa-trash"></i></button>
             </td>
         `;
-
         tbodyLineas.appendChild(fila);
         cerrarModal('modalEmpleados');
     }
 
     function eliminarLinea(idFila) {
         const fila = document.getElementById('linea_' + idFila);
-        const filaError = document.getElementById('error_linea_' + idFila); // Eliminar también el mensaje de error si existe
+        const filaError = document.getElementById('error_linea_' + idFila);
         if (fila) fila.remove();
         if (filaError) filaError.remove();
     }
 
-    // --- Cálculo ---
+    // --- Cálculo Empleados ---
     const preciosPuestos = {
         <?php foreach ($puestos as $p): ?> "<?php echo addslashes($p['descripcion']); ?>": <?php echo (float)$p['precioHora']; ?>,
         <?php endforeach; ?>
@@ -549,7 +585,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         const inputPuesto = document.getElementById('categoria_nombre_' + idFila).value;
         const inputVehiculoId = document.getElementById('vehiculo_id_' + idFila).value;
         const inputImporte = document.querySelector(`input[name="lineas[${idFila}][importe]"]`);
-
         let importeCalculado = 0;
 
         if (inputPuesto.toLowerCase() === 'maquinista' && inputVehiculoId) {
@@ -557,203 +592,78 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         } else if (preciosPuestos[inputPuesto]) {
             importeCalculado = preciosPuestos[inputPuesto];
         }
-
         inputImporte.value = importeCalculado.toFixed(2);
+    }
+
+    // --- Lógica Materiales ---
+    let contadorMateriales = <?php echo isset($contMat) ? $contMat : 0; ?>;
+    const tbodyMateriales = document.getElementById('cuerpo-lineas-materiales');
+
+    function agregarLineaMaterial(nombre, precio) {
+        contadorMateriales++;
+        const fila = document.createElement('tr');
+        fila.id = 'linea_mat_' + contadorMateriales;
+
+        fila.innerHTML = `
+            <td>
+                <input type="hidden" name="materiales[${contadorMateriales}][denominacionArticulo]" value="${nombre}">
+                <strong>${nombre}</strong>
+            </td>
+            <td>
+                <input type="number" step="0.01" id="precio_mat_${contadorMateriales}" name="materiales[${contadorMateriales}][precioUnitario]" value="${precio}" readonly style="width: 100px; background: #e2e8f0;">
+            </td>
+            <td>
+                <input type="number" step="0.01" id="unidades_mat_${contadorMateriales}" name="materiales[${contadorMateriales}][unidades]" value="1" required oninput="calcularTotalMaterial(${contadorMateriales})" style="width: 100px;">
+            </td>
+            <td>
+                <input type="number" step="0.01" id="total_mat_${contadorMateriales}" name="materiales[${contadorMateriales}][importeTotal]" value="${precio}" readonly style="width: 100px; background: #e2e8f0; font-weight: bold; color: #0f4c81;">
+            </td>
+            <td style="text-align:center;">
+                <button type="button" class="btn-sm btn-eliminar" onclick="eliminarLineaMaterial(${contadorMateriales})"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        `;
+
+        tbodyMateriales.appendChild(fila);
+        cerrarModal('modalMateriales');
+    }
+
+    function eliminarLineaMaterial(idFila) {
+        const fila = document.getElementById('linea_mat_' + idFila);
+        if (fila) fila.remove();
+    }
+
+    function calcularTotalMaterial(idFila) {
+        const unidades = parseFloat(document.getElementById('unidades_mat_' + idFila).value) || 0;
+        const precio = parseFloat(document.getElementById('precio_mat_' + idFila).value) || 0;
+        const totalInput = document.getElementById('total_mat_' + idFila);
+        totalInput.value = (unidades * precio).toFixed(2);
     }
 </script>
 
-<!-- ========================================== -->
-<!-- ESTILOS UNIFICADOS DE FORMULARIO           -->
-<!-- ========================================== -->
 <style>
-    /* Estilos Error Filas (¡NUEVO!) */
-    .fila-error td {
-        background-color: #fef2f2 !important;
-        border-top: 2px solid #ef4444;
-    }
-
-    .fila-error-mensaje td {
-        background-color: #fef2f2;
-        color: #b91c1c;
-        font-weight: bold;
-        padding: 5px 15px;
-        border-bottom: 2px solid #ef4444;
-    }
-
-    .formulario-estandar fieldset {
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 20px;
-        background: #f8fafc;
-        margin-bottom: 20px;
-    }
-
-    .formulario-estandar legend {
-        background: #0f4c81;
-        color: #ffffff;
-        padding: 5px 15px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        font-weight: bold;
-    }
-
-    .form-group {
-        margin-bottom: 15px;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .form-group label {
-        font-weight: 600;
-        color: #334155;
-        margin-bottom: 6px;
-        font-size: 0.85rem;
-    }
-
-    .formulario-estandar input:not([type="hidden"]),
-    .formulario-estandar select,
-    .formulario-estandar textarea {
-        padding: 10px;
-        border: 1px solid #94a3b8;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        font-family: inherit;
-        background: #ffffff;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .formulario-estandar input:focus,
-    .formulario-estandar select:focus,
-    .formulario-estandar textarea:focus {
-        outline: none;
-        border-color: #0f4c81;
-        box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.15);
-    }
-
-    .formulario-estandar input[readonly] {
-        background-color: #e2e8f0;
-        cursor: not-allowed;
-    }
-
-    .grid-3 {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-    }
-
-    .input-con-boton {
-        display: flex;
-        gap: 10px;
-    }
-
-    .input-con-boton input {
-        flex-grow: 1;
-    }
-
-    .mt-15 {
-        margin-top: 15px;
-    }
-
-    .alerta-error {
-        background-color: #fee2e2;
-        color: #b91c1c;
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid #f87171;
-        margin-bottom: 20px;
-        font-size: 0.95rem;
-    }
-
-    .modal {
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(15, 23, 42, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .modal-contenido {
-        background-color: #ffffff;
-        padding: 25px;
-        width: 90%;
-        max-width: 800px;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    }
-
-    .modal-contenido h3 {
-        margin-top: 0;
-        color: #0f4c81;
-        border-bottom: 2px solid #e2e8f0;
-        padding-bottom: 10px;
-        margin-bottom: 15px;
-    }
-
-    .tabla-contenedor-scroll {
-        max-height: 400px;
-        overflow-y: auto;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-    }
-
-    button,
-    .btn-secundario,
-    .btn-principal {
-        font-family: inherit;
-        cursor: pointer;
-        transition: opacity 0.2s;
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    button:hover:not(:disabled),
-    .btn-secundario:hover,
-    .btn-principal:hover {
-        opacity: 0.9;
-    }
-
-    .btn-principal {
-        background: #0f4c81;
-        color: white;
-        padding: 12px 24px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 1rem;
-    }
-
-    .btn-secundario {
-        background: #475569;
-        color: white;
-        padding: 10px 15px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 500;
-    }
-
-    .btn-eliminar {
-        background: #ef4444;
-        color: white;
-        padding: 10px 15px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 500;
-    }
-
-    .btn-icono {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        white-space: nowrap;
-    }
+    .fila-error td { background-color: #fef2f2 !important; border-top: 2px solid #ef4444; }
+    .fila-error-mensaje td { background-color: #fef2f2; color: #b91c1c; font-weight: bold; padding: 5px 15px; border-bottom: 2px solid #ef4444; }
+    .formulario-estandar fieldset { border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; background: #f8fafc; margin-bottom: 20px; }
+    .formulario-estandar legend { background: #0f4c81; color: #ffffff; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
+    .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+    .form-group label { font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.85rem; }
+    .formulario-estandar input:not([type="hidden"]), .formulario-estandar select, .formulario-estandar textarea { padding: 10px; border: 1px solid #94a3b8; border-radius: 6px; font-size: 0.95rem; font-family: inherit; background: #ffffff; transition: border-color 0.2s, box-shadow 0.2s; width: 100%; box-sizing: border-box; }
+    .formulario-estandar input:focus, .formulario-estandar select:focus, .formulario-estandar textarea:focus { outline: none; border-color: #0f4c81; box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.15); }
+    .formulario-estandar input[readonly] { background-color: #e2e8f0; cursor: not-allowed; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .input-con-boton { display: flex; gap: 10px; }
+    .input-con-boton input { flex-grow: 1; }
+    .mt-15 { margin-top: 15px; }
+    .alerta-error { background-color: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid #f87171; margin-bottom: 20px; font-size: 0.95rem; }
+    .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; }
+    .modal-contenido { background-color: #ffffff; padding: 25px; width: 90%; max-width: 800px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
+    .modal-contenido h3 { margin-top: 0; color: #0f4c81; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; }
+    .tabla-contenedor-scroll { max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }
+    button, .btn-secundario, .btn-principal { font-family: inherit; cursor: pointer; transition: opacity 0.2s; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:hover:not(:disabled), .btn-secundario:hover, .btn-principal:hover { opacity: 0.9; }
+    .btn-principal { background: #0f4c81; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; }
+    .btn-secundario { background: #475569; color: white; padding: 10px 15px; border: none; border-radius: 6px; font-weight: 500; }
+    .btn-eliminar { background: #ef4444; color: white; padding: 10px 15px; border: none; border-radius: 6px; font-weight: 500; }
+    .btn-icono { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 </style>
