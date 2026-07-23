@@ -9,12 +9,14 @@ class TablaController {
     }
 
     public function index() {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
         $tablas = $this->modelo->obtenerCabeceras($_SESSION['idEmpresa']);
         $contenido_vista = '../views/tablas/index.php';
         require_once '../views/layout/master.php';
     }
 
     public function guardar_cabecera() {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $datos = [
                 'codigo'      => strtoupper(trim($_POST['codigo'])),
@@ -25,8 +27,7 @@ class TablaController {
             try {
                 $this->modelo->crearCabecera($datos);
             } catch (Exception $e) {
-                // Si el código ya existe, fallará silenciosamente y volverá al index
-                // En el futuro puedes añadir aquí el array de $errores si lo deseas
+                // Si ya existe, falla silenciosamente
             }
             header("Location: /index.php?controller=tabla&action=index");
             exit;
@@ -34,6 +35,7 @@ class TablaController {
     }
 
     public function lineas() {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
         if (!isset($_GET['codigo'])) {
             die("Error: Código de cabecera no proporcionado.");
         }
@@ -47,11 +49,12 @@ class TablaController {
     }
 
     public function guardar_linea() {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $codigoCabecera = $_POST['codigoCabecera'];
             $datos = [
                 'codigoCabecera' => $codigoCabecera,
-                'codigo'         => strtoupper(trim($_POST['codigo'])), // Lo forzamos a mayúsculas
+                'codigo'         => strtoupper(trim($_POST['codigo'])),
                 'descripcion'    => trim($_POST['descripcion']),
                 'idEmpresa'      => $_SESSION['idEmpresa']
             ];
@@ -63,12 +66,31 @@ class TablaController {
     }
 
     public function eliminar_linea($id) {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+
         if (isset($_GET['codigo'])) {
-            $this->modelo->eliminarLinea($id, $_SESSION['idEmpresa']);
-            header("Location: /index.php?controller=tabla&action=lineas&codigo=" . urlencode($_GET['codigo']));
+            $codigoCabecera = $_GET['codigo'];
+            $idEmpresa = $_SESSION['idEmpresa'];
+
+            $linea = $this->modelo->obtenerLineaPorId($id, $idEmpresa);
+
+            if ($linea) {
+                $codigoLinea = $linea['codigo'];
+                
+                $enUso = $this->modelo->comprobarDependenciasLinea($codigoLinea, $idEmpresa);
+
+                if ($enUso) {
+                    $_SESSION['error_eliminar_linea'] = "No se puede eliminar el código <strong>" . htmlspecialchars($codigoLinea) . "</strong> porque ya está asignado a un elemento del Inventario o a un Documento.";
+                } else {
+                    $this->modelo->eliminarLinea($id, $idEmpresa);
+                }
+            }
+            
+            header("Location: /index.php?controller=tabla&action=lineas&codigo=" . urlencode($codigoCabecera));
             exit;
         }
     }
+
     public function eliminar_cabecera() {
         if (session_status() === PHP_SESSION_NONE) { session_start(); }
         
@@ -80,25 +102,32 @@ class TablaController {
         $codigo = $_GET['codigo'];
         $idEmpresa = $_SESSION['idEmpresa'];
 
-        // 1. Comprobamos si está asignada en el Catálogo de Inventario
-        $dependencias = $this->modelo->comprobarDependenciasCatalogo($codigo, $idEmpresa);
+        $dependenciasCatalogo = $this->modelo->comprobarDependenciasCatalogo($codigo, $idEmpresa);
+        $enUsoDocumentos = $this->modelo->comprobarDependenciasCabeceraDocumentos($codigo, $idEmpresa);
         
-        if (!empty($dependencias)) {
-            // Si hay dependencias, construimos el mensaje de error con los sitios exactos
-            $nombres_catalogos = [];
-            foreach ($dependencias as $dep) {
-                $nombres_catalogos[] = "<strong>" . htmlspecialchars($dep['nombre_tipo']) . " (" . htmlspecialchars($dep['prefijo']) . ")</strong>";
+        if (!empty($dependenciasCatalogo) || $enUsoDocumentos) {
+            $mensaje = "No se puede eliminar la tabla <strong>" . htmlspecialchars($codigo) . "</strong> porque ";
+            $motivos = [];
+            
+            if (!empty($dependenciasCatalogo)) {
+                $nombres_catalogos = [];
+                foreach ($dependenciasCatalogo as $dep) {
+                    $nombres_catalogos[] = "<strong>" . htmlspecialchars($dep['nombre_tipo']) . "</strong>";
+                }
+                $motivos[] = "está vinculada al esquema del catálogo de inventario: " . implode(", ", $nombres_catalogos);
             }
             
-            $mensaje = "No se puede eliminar la tabla auxiliar <strong>" . htmlspecialchars($codigo) . "</strong> porque está vinculada actualmente a los siguientes catálogos: " . implode(", ", $nombres_catalogos) . ". <br><br>Debes desvincularla en el catálogo de inventario antes de proceder.";
+            if ($enUsoDocumentos) {
+                $motivos[] = "uno o más de sus valores internos ya están en uso (en el Inventario, Albaranes o Partes)";
+            }
             
+            $mensaje .= implode(" y ", $motivos) . ".";
             $_SESSION['error_eliminar'] = $mensaje;
-        } else {
-            // 2. Si está libre de dependencias, la eliminamos
-            $resultado = $this->modelo->eliminarCabecera($codigo, $idEmpresa);
             
+        } else {
+            $resultado = $this->modelo->eliminarCabecera($codigo, $idEmpresa);
             if ($resultado !== true) {
-                $_SESSION['error_eliminar'] = "Error interno de Base de Datos al eliminar: " . $resultado;
+                $_SESSION['error_eliminar'] = "Error de BD al eliminar: " . $resultado;
             }
         }
 

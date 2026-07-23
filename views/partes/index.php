@@ -31,7 +31,7 @@ unset($_SESSION['error_guardado']);
     <form action="/index.php" method="GET" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
 
         <!-- Input oculto para mantener el controlador -->
-        <input type="hidden" name="controller" value="parte">
+        <input type="hidden" name="controller" value="partes">
 
         <div class="form-group" style="flex: 1; min-width: 120px; margin-bottom: 0;">
             <label>ID Parte</label>

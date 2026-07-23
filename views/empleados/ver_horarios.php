@@ -1,11 +1,11 @@
 <div class="contenedor-albaran">
     
-    <!-- 1. ENCABEZADO (Separado de los filtros) -->
+    <!-- 1. ENCABEZADO -->
     <div class="encabezado-seccion" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
         <div>
             <h2 style="margin-bottom: 5px;">Registro de Horas</h2>
             <p style="color: #64748b; margin: 0; font-size: 1.1rem;">
-                <i class="fa-solid fa-user"></i> <?php echo htmlspecialchars($empleado['nombre'] . ' ' . $empleado['apellido1']. ' ' . $empleado['apellido2']); ?>
+                <i class="fa-solid fa-user"></i> <?php echo htmlspecialchars($empleado['nombre'] . ' ' . $empleado['apellido1'] . ' ' . ($empleado['apellido2'] ?? '')); ?>
             </p>
         </div>
         <a href="/index.php?controller=empleado&action=index" class="btn-secundario" style="text-decoration: none;">
@@ -44,11 +44,74 @@
         </form>
     </div>
 
-    <!-- 3. RESULTADOS DE HORARIOS -->
+    <!-- 3. PANEL DE RESUMEN (SUMATORIOS Y MEDIA) -->
+    <?php if (!empty($dias_trabajados)): 
+        // 1. Calcular sumatorio total de horas
+        $minutos_totales_periodo = 0;
+        foreach ($dias_trabajados as $datosDia) {
+            $minutos_totales_periodo += $datosDia['minutos_totales'];
+        }
+        $horas_totales = floor($minutos_totales_periodo / 60);
+        $mins_totales = $minutos_totales_periodo % 60;
+        
+        // 2. Calcular los días que abarca el filtro para hacer la media
+        $dias_calendario = 1;
+        if (!empty($fechaInicio) && !empty($fechaFin)) {
+            $d1 = new DateTime($fechaInicio);
+            $d2 = new DateTime($fechaFin);
+            $dias_calendario = $d1->diff($d2)->days + 1;
+        } elseif (!empty($dias_trabajados)) {
+            $fechas_arr = array_keys($dias_trabajados);
+            $d1 = new DateTime(min($fechas_arr));
+            $d2 = new DateTime(max($fechas_arr));
+            $dias_calendario = $d1->diff($d2)->days + 1;
+        }
+        
+        $dias_laborados = count($dias_trabajados);
+        
+        // 3. Media diaria en el rango
+        $media_minutos = $dias_calendario > 0 ? round($minutos_totales_periodo / $dias_calendario) : 0;
+        $h_media = floor($media_minutos / 60);
+        $m_media = $media_minutos % 60;
+    ?>
+        <div class="dashboard-resumen">
+            <div class="tarjeta-resumen">
+                <div class="resumen-icono" style="background-color: #e0e7ff; color: #4338ca;">
+                    <i class="fa-solid fa-stopwatch"></i>
+                </div>
+                <div class="resumen-datos">
+                    <span>Total Horas Periodo</span>
+                    <strong><?php echo $horas_totales . 'h ' . ($mins_totales > 0 ? $mins_totales . 'm' : ''); ?></strong>
+                </div>
+            </div>
+            
+            <div class="tarjeta-resumen">
+                <div class="resumen-icono" style="background-color: #dcfce7; color: #047857;">
+                    <i class="fa-regular fa-calendar-check"></i>
+                </div>
+                <div class="resumen-datos">
+                    <span>Días Trabajados</span>
+                    <strong><?php echo $dias_laborados; ?> <small>días</small></strong>
+                </div>
+            </div>
+            
+            <div class="tarjeta-resumen">
+                <div class="resumen-icono" style="background-color: #fef3c7; color: #b45309;">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div class="resumen-datos">
+                    <span>Media Diaria (Filtro)</span>
+                    <strong><?php echo $h_media . 'h ' . ($m_media > 0 ? $m_media . 'm' : ''); ?> <small>/ día</small></strong>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- 4. RESULTADOS DE HORARIOS -->
     <?php if (empty($dias_trabajados)): ?>
         <div class="alerta-vacia">
             <i class="fa-regular fa-calendar-xmark" style="font-size: 2rem; margin-bottom: 10px; color: #94a3b8;"></i><br>
-            Este empleado no tiene horas registradas en ningún Parte o Albarán.
+            Este empleado no tiene horas registradas en el periodo seleccionado.
         </div>
     <?php else: ?>
         <div class="timeline-horarios">
@@ -167,6 +230,58 @@
 <!-- ESTILOS                                    -->
 <!-- ========================================== -->
 <style>
+    /* Estilos del Dashboard Resumen */
+    .dashboard-resumen {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .tarjeta-resumen {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .resumen-icono {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .resumen-datos {
+        display: flex;
+        flex-direction: column;
+    }
+    .resumen-datos span {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .resumen-datos strong {
+        font-size: 1.4rem;
+        color: #0f4c81;
+        margin-top: 5px;
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+    }
+    .resumen-datos small {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        font-weight: normal;
+    }
+
+    /* Resto de estilos */
     .alerta-vacia {
         background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
         padding: 50px 20px; text-align: center; color: #64748b; font-size: 1.1rem;

@@ -62,7 +62,7 @@ $textoBoton = $esEdicion ? 'Actualizar Parte' : 'Guardar Parte';
                     <input type="date" name="fechaDesde" value="<?php echo htmlspecialchars(substr($parte['fechaDesde'] ?? '', 0, 10)); ?>" required onchange="document.getElementById('fechaHastaInput').value = this.value;">
                     
                     <!-- Este campo permanece oculto pero viaja en el POST para que el Controlador no falle -->
-                    <input type="hidden" name="fechaHasta" id="fechaHastaInput" value="<?php echo htmlspecialchars(substr($parte['fechaHasta'] ?? $parte['fechaDesde'] ?? '', 0, 10)); ?>">
+                    <!-- <input type="hidden" name="fechaHasta" id="fechaHastaInput" value="<?php echo htmlspecialchars(substr($parte['fechaHasta'] ?? $parte['fechaDesde'] ?? '', 0, 10)); ?>"> -->
                 </div>
             </div>
 

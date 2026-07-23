@@ -83,6 +83,10 @@ switch ($controladorSolicitado) {
         $controller = new ParteController($conexion);
         break;
 
+    case 'auditoria':
+        require_once '../controllers/AuditoriaController.php';
+        $controller = new AuditoriaController($conexion);
+        break;
 
 
 

@@ -1,21 +1,18 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-$mensaje_error = $_SESSION['error_eliminar'] ?? null;
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+// Capturamos el error
+$mensaje_error_cabecera = $_SESSION['error_eliminar'] ?? null;
 unset($_SESSION['error_eliminar']);
 ?>
 
-<div class="encabezado-modulo">
-    <h2>Gestor de Tablas Auxiliares</h2>
-</div>
-
-<!-- Bloque de Error -->
-<?php if ($mensaje_error): ?>
-    <div class="alerta-error" style="background-color: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid #f87171; margin-bottom: 20px;">
-        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Operación denegada:</strong> <br><br>
-        <?php echo $mensaje_error; ?>
+<!-- Si hay error, pintamos la alerta -->
+<?php if ($mensaje_error_cabecera): ?>
+    <div class="alerta-error" style="background-color: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid #f87171; margin-bottom: 20px; font-weight: 500;">
+        <i class="fa-solid fa-triangle-exclamation"></i> <?php echo $mensaje_error_cabecera; ?>
     </div>
 <?php endif; ?>
-
 <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
     
     <div class="tarjeta-formulario" style="height: fit-content; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc;">

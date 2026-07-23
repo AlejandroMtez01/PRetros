@@ -73,7 +73,7 @@ class ParteController
             $parte['idEmpleado'] = $datosPost['idEmpleado'] ?? '';
             $parte['nombreEmpleado'] = $datosPost['nombreEmpleado'] ?? '';
             $parte['fechaDesde'] = $datosPost['fechaDesde'] ?? '';
-            $parte['fechaHasta'] = $datosPost['fechaHasta'] ?? '';
+            $parte['fechaHasta'] = $datosPost['fechaDesde'] ?? '';
             $parte['observaciones'] = $datosPost['observaciones'] ?? '';
 
             $lineas = $datosPost['lineas'] ?? [];
@@ -99,7 +99,7 @@ class ParteController
             $cabecera = [
                 'idEmpleado'    => intval($_POST['idEmpleado']),
                 'fechaDesde'    => $_POST['fechaDesde'],
-                'fechaHasta'    => $_POST['fechaHasta'],
+                'fechaHasta'    => $_POST['fechaDesde'],
                 'observaciones' => $_POST['observaciones'] ?? null,
                 'idUsuario'     => $idUsuarioActivo,
                 'idEmpresa'     => $idEmpresaActiva
@@ -191,7 +191,7 @@ class ParteController
             $parte['idEmpleado'] = $datosPost['idEmpleado'] ?? $parte['idEmpleado'];
             $parte['nombreEmpleado'] = $datosPost['nombreEmpleado'] ?? $parte['nombreEmpleado'];
             $parte['fechaDesde'] = $datosPost['fechaDesde'] ?? $parte['fechaDesde'];
-            $parte['fechaHasta'] = $datosPost['fechaHasta'] ?? $parte['fechaHasta'];
+            $parte['fechaHasta'] = $datosPost['fechaDesde'] ?? $parte['fechaHasta'];
             $parte['observaciones'] = $datosPost['observaciones'] ?? $parte['observaciones'];
 
             $lineas = $datosPost['lineas'] ?? [];
@@ -219,7 +219,7 @@ class ParteController
             $cabecera = [
                 'idEmpleado'    => intval($_POST['idEmpleado']),
                 'fechaDesde'    => $_POST['fechaDesde'],
-                'fechaHasta'    => $_POST['fechaHasta'],
+                'fechaHasta'    => $_POST['fechaDesde'],
                 'observaciones' => $_POST['observaciones'] ?? null,
                 'idUsuario'     => $idUsuarioActivo,
                 'idEmpresa'     => $idEmpresaActiva
@@ -240,7 +240,7 @@ class ParteController
             $resultado = $this->modeloParte->actualizarParteCompleto($idParte, $cabecera, $lineas);
 
             if ($resultado === true) {
-                header("Location: /index.php?controller=partes");
+                header("Location: /index.php?controller=partes&action=ver&id=".$idParte);
             } else {
                 $_SESSION['error_guardado'] = "Error BD: " . $resultado;
                 $_SESSION['datos_pendientes'] = $_POST;

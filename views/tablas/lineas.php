@@ -1,9 +1,25 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+// Recogemos el posible error al intentar borrar una línea en uso
+$mensaje_error = $_SESSION['error_eliminar_linea'] ?? null;
+unset($_SESSION['error_eliminar_linea']);
+?>
+
 <div class="encabezado-modulo">
     <h2>Valores de: <?php echo htmlspecialchars($cabecera['descripcion']); ?> (<?php echo htmlspecialchars($cabecera['codigo']); ?>)</h2>
     <a href="/index.php?controller=tabla&action=index" class="btn-secundario">
         <i class="fa-solid fa-arrow-left"></i> Volver a Tablas
     </a>
 </div>
+
+<!-- NUEVO BLOQUE DE ERROR -->
+<?php if ($mensaje_error): ?>
+    <div class="alerta-error" style="background-color: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid #f87171; margin-bottom: 20px; font-weight: 500;">
+        <i class="fa-solid fa-triangle-exclamation"></i> <?php echo $mensaje_error; ?>
+    </div>
+<?php endif; ?>
 
 <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
     
@@ -13,7 +29,6 @@
             <input type="hidden" name="codigoCabecera" value="<?php echo htmlspecialchars($cabecera['codigo']); ?>">
             
             <div class="form-group" style="margin-bottom: 15px;">
-                <!-- Ojo aquí al maxlength=3 que manda la BD -->
                 <label>Código (Máx 3 letras) *</label>
                 <input type="text" name="codigo" required maxlength="3" placeholder="Ej: ES" style="width: 100%; padding: 8px;">
             </div>
