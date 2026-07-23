@@ -25,13 +25,19 @@ $textoBoton = $esEdicion ? 'Actualizar Parte' : 'Guardar Parte';
         </a>
     </div>
 
-    <!-- Bloque de Error -->
+    <!-- ERRORES DE PHP (Servidor) -->
     <?php if ($mensaje_error): ?>
         <div class="alerta-error">
             <i class="fa-solid fa-triangle-exclamation"></i>
             <?php echo is_array($mensaje_error) ? implode(" ", $mensaje_error) : htmlspecialchars($mensaje_error); ?>
         </div>
     <?php endif; ?>
+
+    <!-- ERRORES DE JAVASCRIPT (Cliente) -->
+    <div id="contenedor-errores-js" class="alerta-error" style="display: none;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="texto-errores-js"></span>
+    </div>
 
     <form action="/index.php?controller=partes&action=<?php echo $accionFormulario; ?>" method="POST" id="formParte" class="formulario-estandar">
 
@@ -48,8 +54,8 @@ $textoBoton = $esEdicion ? 'Actualizar Parte' : 'Guardar Parte';
                 <div class="form-group">
                     <label>Empleado</label>
                     <div class="input-con-boton">
-                        <input type="hidden" name="idEmpleado" id="idEmpleadoInput" value="<?php echo $parte['idEmpleado'] ?? ''; ?>" required>
-                        <input type="text" name="nombreEmpleado" id="nombreEmpleadoInput" value="<?php echo htmlspecialchars($parte['nombreEmpleado'] ?? ''); ?>" placeholder="Seleccione empleado..." readonly required>
+                        <input type="hidden" name="idEmpleado" id="idEmpleadoInput" value="<?php echo $parte['idEmpleado'] ?? ''; ?>">
+                        <input type="text" name="nombreEmpleado" id="nombreEmpleadoInput" value="<?php echo htmlspecialchars($parte['nombreEmpleado'] ?? ''); ?>" placeholder="Seleccione empleado..." readonly>
                         <button type="button" class="btn-secundario btn-icono" onclick="abrirModal('modalEmpleados')">
                             <i class="fa-solid fa-user"></i> Buscar
                         </button>
@@ -282,7 +288,6 @@ $textoBoton = $esEdicion ? 'Actualizar Parte' : 'Guardar Parte';
                     <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
                         <td><strong>Maquinista</strong> <span style="font-size: 0.8rem; color: #b91c1c; margin-left: 8px;"><i class="fa-solid fa-circle-exclamation"></i> Requiere Vehículo</span></td>
                         <td style="text-align: center;">
-                            <!-- Pasamos 0 como ID simulado, o el ID real si lo tienes en BD -->
                             <button type="button" class="btn-principal" style="padding: 5px 10px;" onclick="seleccionarCategoria(0, 'Maquinista', true)">Seleccionar</button>
                         </td>
                     </tr>
@@ -356,10 +361,38 @@ $textoBoton = $esEdicion ? 'Actualizar Parte' : 'Guardar Parte';
         document.getElementById(idModal).style.display = 'none';
     }
 
+    // --- NUEVO: Intercepción del envío para mostrar errores en UI ---
+    document.getElementById('formParte').addEventListener('submit', function(event) {
+        const idEmpleado = document.getElementById('idEmpleadoInput').value;
+        const divErrores = document.getElementById('contenedor-errores-js');
+        const textoErrores = document.getElementById('texto-errores-js');
+        let errores = [];
+
+        // Resetear estilos y ocultar el div
+        document.getElementById('nombreEmpleadoInput').style.border = '1px solid #94a3b8';
+        divErrores.style.display = 'none';
+
+        // Comprobar Empleado
+        if (!idEmpleado || idEmpleado === "0" || idEmpleado === "") {
+            errores.push("Falta rellenar el Empleado. Utilice el botón 'Buscar'.");
+            document.getElementById('nombreEmpleadoInput').style.border = '2px solid #ef4444';
+        }
+
+        // Si hay errores, bloqueamos el envío y mostramos en pantalla
+        if (errores.length > 0) {
+            event.preventDefault(); 
+            textoErrores.innerHTML = "<strong>POR FAVOR REVISE LOS SIGUIENTES ERRORES:</strong><br>" + errores.join("<br>");
+            divErrores.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Llevar al usuario arriba del todo
+        }
+    });
+
     // --- Empleado (Cabecera) ---
     function seleccionarEmpleado(id, nombre) {
         document.getElementById('idEmpleadoInput').value = id;
-        document.getElementById('nombreEmpleadoInput').value = nombre;
+        const inputNombre = document.getElementById('nombreEmpleadoInput');
+        inputNombre.value = nombre;
+        inputNombre.style.border = '1px solid #94a3b8'; // Restaurar color normal
         cerrarModal('modalEmpleados');
     }
 

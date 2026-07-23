@@ -20,12 +20,19 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         </a>
     </div>
 
+    <!-- ERRORES DE PHP (Servidor) -->
     <?php if ($mensaje_error): ?>
         <div class="alerta-error">
             <i class="fa-solid fa-triangle-exclamation"></i>
             <?php echo is_array($mensaje_error) ? implode(" ", $mensaje_error) : htmlspecialchars($mensaje_error); ?>
         </div>
     <?php endif; ?>
+
+    <!-- ERRORES DE JAVASCRIPT (Cliente) -->
+    <div id="contenedor-errores-js" class="alerta-error" style="display: none;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="texto-errores-js"></span>
+    </div>
 
     <form action="/index.php?controller=albaran&action=<?php echo $accionFormulario; ?>" method="POST" id="formAlbaran" class="formulario-estandar">
 
@@ -48,8 +55,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 <div class="form-group">
                     <label>Cliente</label>
                     <div class="input-con-boton">
-                        <input type="hidden" name="idCliente" id="idClienteInput" value="<?php echo $albaran['idCliente'] ?? ''; ?>" required>
-                        <input type="text" name="nombreCliente" id="nombreClienteInput" value="<?php echo htmlspecialchars($albaran['nombreCliente'] ?? ''); ?>" placeholder="Seleccione cliente..." readonly required>
+                        <input type="hidden" name="idCliente" id="idClienteInput" value="<?php echo $albaran['idCliente'] ?? ''; ?>">
+                        <input type="text" name="nombreCliente" id="nombreClienteInput" value="<?php echo htmlspecialchars($albaran['nombreCliente'] ?? ''); ?>" placeholder="Seleccione cliente..." readonly>
                         <button type="button" class="btn-secundario btn-icono" onclick="abrirModal('modalClientes')">
                             <i class="fa-solid fa-building"></i> Buscar
                         </button>
@@ -58,8 +65,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 <div class="form-group">
                     <label>Centro de Trabajo</label>
                     <div class="input-con-boton">
-                        <input type="hidden" name="idCentro" id="idCentroInput" value="<?php echo $albaran['idCentro'] ?? ''; ?>" required>
-                        <input type="text" name="nombreCentro" id="nombreCentroInput" value="<?php echo htmlspecialchars($albaran['nombreCentro'] ?? ''); ?>" placeholder="Seleccione primero un cliente..." readonly required>
+                        <input type="hidden" name="idCentro" id="idCentroInput" value="<?php echo $albaran['idCentro'] ?? ''; ?>">
+                        <input type="text" name="nombreCentro" id="nombreCentroInput" value="<?php echo htmlspecialchars($albaran['nombreCentro'] ?? ''); ?>" placeholder="Seleccione primero un cliente..." readonly>
                         <button type="button" id="btnBuscarCentro" class="btn-secundario btn-icono" onclick="abrirModal('modalCentros')" <?php echo empty($albaran['idCliente']) ? 'disabled' : ''; ?>>
                             <i class="fa-solid fa-location-dot"></i> Buscar
                         </button>
@@ -432,10 +439,47 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
     function abrirModal(idModal) { document.getElementById(idModal).style.display = 'flex'; }
     function cerrarModal(idModal) { document.getElementById(idModal).style.display = 'none'; }
 
+    // --- NUEVO: Intercepción del envío para mostrar errores en UI ---
+    document.getElementById('formAlbaran').addEventListener('submit', function(event) {
+        const idCliente = document.getElementById('idClienteInput').value;
+        const idCentro = document.getElementById('idCentroInput').value;
+        const divErrores = document.getElementById('contenedor-errores-js');
+        const textoErrores = document.getElementById('texto-errores-js');
+        let errores = [];
+
+        // Resetear estilos y ocultar el div
+        document.getElementById('nombreClienteInput').style.border = '1px solid #94a3b8';
+        document.getElementById('nombreCentroInput').style.border = '1px solid #94a3b8';
+        divErrores.style.display = 'none';
+
+        // Comprobar Cliente
+        if (!idCliente || idCliente === "0" || idCliente === "") {
+            errores.push("Falta rellenar el Cliente. Utilice el botón 'Buscar'.");
+            document.getElementById('nombreClienteInput').style.border = '2px solid #ef4444';
+        }
+        
+        // Comprobar Centro
+        if (!idCentro || idCentro === "0" || idCentro === "") {
+            errores.push("Falta rellenar el Centro de Trabajo. Utilice el botón 'Buscar'.");
+            document.getElementById('nombreCentroInput').style.border = '2px solid #ef4444';
+        }
+
+        // Si hay errores, bloqueamos el envío y mostramos en pantalla
+        if (errores.length > 0) {
+            event.preventDefault(); 
+            textoErrores.innerHTML = "<strong>POR FAVOR REVISE LOS SIGUIENTES ERRORES:</strong><br>" + errores.join("<br>");
+            divErrores.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Llevar al usuario arriba del todo
+        }
+    });
+
     // --- Lógica Clientes/Centros ---
     function seleccionarCliente(id, nombre) {
         document.getElementById('idClienteInput').value = id;
-        document.getElementById('nombreClienteInput').value = nombre;
+        const inputNombre = document.getElementById('nombreClienteInput');
+        inputNombre.value = nombre;
+        inputNombre.style.border = '1px solid #94a3b8'; // Restaurar color normal
+        
         document.getElementById('idCentroInput').value = '';
         document.getElementById('nombreCentroInput').value = 'Seleccione un centro...';
         cerrarModal('modalClientes');
@@ -473,7 +517,9 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
 
     function seleccionarCentro(id, direccion) {
         document.getElementById('idCentroInput').value = id;
-        document.getElementById('nombreCentroInput').value = direccion;
+        const inputNombre = document.getElementById('nombreCentroInput');
+        inputNombre.value = direccion;
+        inputNombre.style.border = '1px solid #94a3b8'; // Restaurar color normal
         cerrarModal('modalCentros');
     }
 
@@ -659,11 +705,11 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
     .modal-contenido { background-color: #ffffff; padding: 25px; width: 90%; max-width: 800px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
     .modal-contenido h3 { margin-top: 0; color: #0f4c81; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; }
     .tabla-contenedor-scroll { max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }
-    button, .btn-secundario, .btn-principal { font-family: inherit; cursor: pointer; transition: opacity 0.2s; }
+    button, .btn-secundario, .btn-principal { font-family: inherit; cursor: pointer; transition: opacity 0.2s; border: none; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
     button:hover:not(:disabled), .btn-secundario:hover, .btn-principal:hover { opacity: 0.9; }
-    .btn-principal { background: #0f4c81; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; }
-    .btn-secundario { background: #475569; color: white; padding: 10px 15px; border: none; border-radius: 6px; font-weight: 500; }
-    .btn-eliminar { background: #ef4444; color: white; padding: 10px 15px; border: none; border-radius: 6px; font-weight: 500; }
+    .btn-principal { background: #0f4c81; color: white; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 1rem; }
+    .btn-secundario { background: #475569; color: white; padding: 10px 15px; border-radius: 6px; font-weight: 500; }
+    .btn-eliminar { background: #ef4444; color: white; padding: 10px 15px; border-radius: 6px; font-weight: 500; }
     .btn-icono { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 </style>

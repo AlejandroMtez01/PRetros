@@ -17,14 +17,47 @@ class Puesto {
         return [];
     }
 
+    // NUEVO: Obtener un puesto específico para leer su descripción
+    public function obtenerPorId($id, $idEmpresa) {
+        $sql = "SELECT * FROM Puestos WHERE id = ? AND idEmpresa = ?";
+        $stmt = $this->conexion->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("ii", $id, $idEmpresa);
+            $stmt->execute();
+            return $stmt->get_result()->fetch_assoc();
+        }
+        return null;
+    }
+
+    // NUEVO: Buscar si el puesto se ha usado en Partes o Albaranes
+    public function comprobarDependencias($descripcionPuesto, $idEmpresa) {
+        // 1. Comprobar en Albaranes
+        $sqlAlbaran = "SELECT 1 FROM lineasAlbaran WHERE idEmpresa = ? AND categoriaProfesional = ? LIMIT 1";
+        $stmtA = $this->conexion->prepare($sqlAlbaran);
+        if ($stmtA) {
+            $stmtA->bind_param("is", $idEmpresa, $descripcionPuesto);
+            $stmtA->execute();
+            if ($stmtA->get_result()->num_rows > 0) return true;
+        }
+
+        // 2. Comprobar en Partes
+        $sqlPartes = "SELECT 1 FROM lineasPartes WHERE idEmpresa = ? AND categoriaProfesional = ? LIMIT 1";
+        $stmtP = $this->conexion->prepare($sqlPartes);
+        if ($stmtP) {
+            $stmtP->bind_param("is", $idEmpresa, $descripcionPuesto);
+            $stmtP->execute();
+            if ($stmtP->get_result()->num_rows > 0) return true;
+        }
+
+        return false;
+    }
+
     public function guardar($datos) {
         if (empty($datos['id'])) {
-            // INSERTAR: i = entero (idEmpresa), s = string (descripcion), d = double (precioHora)
             $sql = "INSERT INTO Puestos (idEmpresa, descripcion, precioHora) VALUES (?, ?, ?)";
             $stmt = $this->conexion->prepare($sql);
             $stmt->bind_param("isd", $datos['idEmpresa'], $datos['descripcion'], $datos['precioHora']);
         } else {
-            // ACTUALIZAR: s = string (descripcion), d = double (precioHora), i = entero (id, idEmpresa)
             $sql = "UPDATE Puestos SET descripcion = ?, precioHora = ? WHERE id = ? AND idEmpresa = ?";
             $stmt = $this->conexion->prepare($sql);
             $stmt->bind_param("sdii", $datos['descripcion'], $datos['precioHora'], $datos['id'], $datos['idEmpresa']);

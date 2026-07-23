@@ -49,7 +49,7 @@ class AuditoriaController {
                 $inconsistencias[] = [
                     'tipo' => 'PARTE_HUERFANO',
                     'gravedad' => 'warning',
-                    'alerta' => '¡Fuga de Ingresos!',
+                    'alerta' => '¡Falta Reflejar en Albarán!',
                     'mensaje' => 'El empleado ha trabajado estas horas, pero no se ha incluido en ningún albarán del cliente.',
                     'fecha' => $parte['fecha'],
                     'empleado' => $parte['nombre'] . ' ' . $parte['apellido1'],
@@ -67,7 +67,7 @@ class AuditoriaController {
                 $inconsistencias[] = [
                     'tipo' => 'ALBARAN_HUERFANO',
                     'gravedad' => 'danger',
-                    'alerta' => '¡Nómina Incompleta!',
+                    'alerta' => '¡Falta Reflejar en Parte!',
                     'mensaje' => 'Se ha facturado este trabajo al cliente, pero el empleado no tiene el parte registrado.',
                     'fecha' => $albaran['fecha'],
                     'empleado' => $albaran['nombre'] . ' ' . $albaran['apellido1'],

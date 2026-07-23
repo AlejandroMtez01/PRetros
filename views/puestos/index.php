@@ -13,7 +13,7 @@ unset($_SESSION['error_guardado']);
 
 <?php if ($mensaje_error): ?>
     <div class="alerta-error">
-        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Error:</strong> <?= htmlspecialchars($mensaje_error) ?>
+        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Error:</strong> <?= $mensaje_error ?>
     </div>
 <?php endif; ?>
 

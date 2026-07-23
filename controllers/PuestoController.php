@@ -25,7 +25,6 @@ class PuestoController {
             if (session_status() === PHP_SESSION_NONE) { session_start(); }
             $idEmpresaActiva = $_SESSION['idEmpresa'] ?? 0;
 
-            // Sanitizamos los datos recibidos
             $datos = [
                 'id' => isset($_POST['id']) ? intval($_POST['id']) : 0,
                 'descripcion' => trim($_POST['descripcion']),
@@ -51,11 +50,25 @@ class PuestoController {
         $id = intval($_GET['id'] ?? 0);
 
         if ($id > 0) {
-            $resultado = $this->modeloPuesto->eliminar($id, $idEmpresaActiva);
-            if ($resultado !== true) {
-                $_SESSION['error_guardado'] = "Error al eliminar: " . $resultado;
+            // 1. Recuperamos el puesto para saber su descripción exacta
+            $puesto = $this->modeloPuesto->obtenerPorId($id, $idEmpresaActiva);
+
+            if ($puesto) {
+                // 2. Comprobamos si el puesto está en uso
+                $enUso = $this->modeloPuesto->comprobarDependencias($puesto['descripcion'], $idEmpresaActiva);
+
+                if ($enUso) {
+                    $_SESSION['error_guardado'] = "No se puede eliminar el puesto <strong>" . htmlspecialchars($puesto['descripcion']) . "</strong> porque ya está asignado a uno o más Albaranes / Partes de Trabajo.";
+                } else {
+                    // 3. Si no está en uso, eliminamos
+                    $resultado = $this->modeloPuesto->eliminar($id, $idEmpresaActiva);
+                    if ($resultado !== true) {
+                        $_SESSION['error_guardado'] = "Error al eliminar: " . $resultado;
+                    }
+                }
             }
         }
+        
         header("Location: /index.php?controller=puesto");
         exit;
     }
