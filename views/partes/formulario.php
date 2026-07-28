@@ -480,7 +480,7 @@ $textoBoton = $esEdicion ? 'Actualizar Parte' : 'Guardar Parte';
         const tbody = document.getElementById('cuerpo-tabla-centros');
         tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Cargando centros...</td></tr>';
 
-        // Reutilizamos el endpoint del controlador que ya tenías
+        // Reutilizamos el endpoint del controlador
         fetch(`/index.php?controller=albaran&action=obtenerCentrosPorCliente&idCliente=${idCliente}`)
             .then(async response => {
                 if (!response.ok) throw new Error('Error de red');
@@ -493,12 +493,23 @@ $textoBoton = $esEdicion ? 'Actualizar Parte' : 'Guardar Parte';
                     return;
                 }
                 data.forEach(centro => {
-                    const nombreCentro = centro.denominacion || centro.direccion;
-                    const nombreSeguro = nombreCentro.replace(/'/g, "\\'");
+                    const direccion = centro.direccion || centro.denominacion || 'Sin dirección';
+                    const localidad = centro.poblado ? centro.poblado : '';
+                    
+                    // Texto final que se insertará en el input: "Dirección (Localidad)"
+                    const textoCombinado = localidad ? `${direccion} (${localidad})` : direccion;
+                    const nombreSeguro = textoCombinado.replace(/'/g, "\\'");
+                    
+                    // Maquetación de la tabla del modal (Visual)
                     tbody.innerHTML += `
                         <tr>
-                            <td>${nombreCentro}</td>
-                            <td style="text-align: center;"><button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(${centro.id}, '${nombreSeguro}')">Seleccionar</button></td>
+                            <td>
+                                <strong>${direccion}</strong>
+                                ${localidad ? `<br><small style="color: #64748b;"><i class="fa-solid fa-map-pin"></i> ${localidad}</small>` : ''}
+                            </td>
+                            <td style="text-align: center;">
+                                <button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(${centro.id}, '${nombreSeguro}')">Seleccionar</button>
+                            </td>
                         </tr>`;
                 });
             }).catch(error => {

@@ -4,9 +4,25 @@
 // ==========================================
 $totalEmpleados = 0;
 if (!empty($lineas)) {
-    foreach ($lineas as $linea) {
-        $totalEmpleados += (float)($linea['importe'] ?? 0);
+    foreach ($lineas as &$linea) {
+        $ini = strtotime($linea['horaDesde']);
+        $fin = strtotime($linea['horaHasta']);
+        
+        // Si la hora de fin es menor que la de inicio, es que ha cruzado la medianoche
+        if ($fin < $ini) {
+            $fin += 86400; 
+        }
+        
+        $horasTrabajadas = ($fin - $ini) / 3600;
+        $precioHora = (float)($linea['importe'] ?? 0);
+        $totalLinea = $horasTrabajadas * $precioHora;
+        
+        $linea['horasCalculadas'] = $horasTrabajadas;
+        $linea['totalLinea'] = $totalLinea;
+        
+        $totalEmpleados += $totalLinea;
     }
+    unset($linea); // Rompemos la referencia para evitar errores posteriores
 }
 
 $totalMateriales = 0;
@@ -74,9 +90,9 @@ $granTotal = $totalEmpleados + $totalMateriales;
                         <tr>
                             <th style="padding: 12px; text-align: left; color: #475569;">Empleado</th>
                             <th style="padding: 12px; text-align: left; color: #475569;">Horario</th>
-                            <th style="padding: 12px; text-align: left; color: #475569;">Categoría</th>
-                            <th style="padding: 12px; text-align: left; color: #475569;">Vehículo ID</th>
-                            <th style="padding: 12px; text-align: right; color: #475569;">Importe (€)</th>
+                            <th style="padding: 12px; text-align: left; color: #475569;">Categoría / Vehículo</th>
+                            <th style="padding: 12px; text-align: right; color: #475569;">Precio/Hora</th>
+                            <th style="padding: 12px; text-align: right; color: #475569;">Total Línea</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -89,15 +105,19 @@ $granTotal = $totalEmpleados + $totalMateriales;
                                     <td style="padding: 12px;">
                                         <i class="fa-regular fa-clock" style="color: #64748b; margin-right: 5px;"></i>
                                         <?php echo substr($linea['horaDesde'], 0, 5); ?> - <?php echo substr($linea['horaHasta'], 0, 5); ?>
+                                        <small style="color: #64748b; margin-left: 5px; font-weight: bold;">(<?php echo number_format($linea['horasCalculadas'], 2, ',', '.'); ?>h)</small>
                                     </td>
                                     <td style="padding: 12px; text-transform: capitalize;">
                                         <?php echo htmlspecialchars($linea['categoriaProfesional']); ?>
+                                        <?php if (!empty($linea['vehiculoUtilizado'])): ?>
+                                            <br><small style="color: #64748b;"><i class="fa-solid fa-truck"></i> <?php echo htmlspecialchars($linea['vehiculoUtilizado']); ?></small>
+                                        <?php endif; ?>
                                     </td>
-                                    <td style="padding: 12px;">
-                                        <?php echo !empty($linea['vehiculoUtilizado']) ? htmlspecialchars($linea['vehiculoUtilizado']) : '<span style="color:#94a3b8;">N/A</span>'; ?>
+                                    <td style="padding: 12px; text-align: right;">
+                                        <?php echo !empty($linea['importe']) ? number_format($linea['importe'], 2, ',', '.') : '0,00'; ?> €
                                     </td>
                                     <td style="padding: 12px; text-align: right; font-weight: bold; color: #0f4c81;">
-                                        <?php echo !empty($linea['importe']) ? number_format($linea['importe'], 2, ',', '.') : '0,00'; ?>
+                                        <?php echo number_format($linea['totalLinea'], 2, ',', '.'); ?> €
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -160,7 +180,7 @@ $granTotal = $totalEmpleados + $totalMateriales;
                 </h3>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #475569; font-size: 0.95rem;">
-                    <span>Mano de Obra:</span>
+                    <span>Mano de Obra (Horas):</span>
                     <span><?php echo number_format($totalEmpleados, 2, ',', '.'); ?> €</span>
                 </div>
                 
@@ -179,9 +199,6 @@ $granTotal = $totalEmpleados + $totalMateriales;
     </div>
 </div>
 
-<!-- ========================================== -->
-<!-- ESTILOS UNIFICADOS                         -->
-<!-- ========================================== -->
 <style>
     .formulario-estandar fieldset { 
         border: 1px solid #cbd5e1; 

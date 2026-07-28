@@ -96,7 +96,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                         <th>Hora Hasta</th>
                         <th>Categoría / Puesto</th>
                         <th>Vehículo (Maquinistas)</th>
-                        <th>Importe</th>
+                        <th style="width: 110px;">Precio/Hora (€)</th>
+                        <th style="width: 110px; text-align: right;">Total Línea</th>
                         <th style="text-align: center;">Acción</th>
                     </tr>
                 </thead>
@@ -119,6 +120,14 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                 }
                             }
 
+                            // Calcular el total de la línea para inicializar la vista correctamente
+                            $ini = strtotime($l['horaDesde']);
+                            $fin = strtotime($l['horaHasta']);
+                            if ($fin < $ini) $fin += 86400;
+                            $horasTrabajadas = ($fin - $ini) / 3600;
+                            $precioHora = (float)($l['importe'] ?? 0);
+                            $totalCalculado = $horasTrabajadas * $precioHora;
+
                             $esMaq = (strtolower($l['categoriaProfesional'] ?? '') === 'maquinista');
                             $tieneError = isset($erroresLineas[$idFila]);
                     ?>
@@ -128,8 +137,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <input type="hidden" name="lineas[<?php echo $idFila; ?>][empNombreCompleto]" value="<?php echo htmlspecialchars($nombreEmpleadoMostrado); ?>">
                                     <strong><?php echo htmlspecialchars($nombreEmpleadoMostrado); ?></strong>
                                 </td>
-                                <td><input type="time" name="lineas[<?php echo $idFila; ?>][horaDesde]" value="<?php echo substr($l['horaDesde'], 0, 5); ?>" required></td>
-                                <td><input type="time" name="lineas[<?php echo $idFila; ?>][horaHasta]" value="<?php echo substr($l['horaHasta'], 0, 5); ?>" required></td>
+                                <td><input type="time" name="lineas[<?php echo $idFila; ?>][horaDesde]" value="<?php echo substr($l['horaDesde'], 0, 5); ?>" required onchange="calcularTotalEmpleado(<?php echo $idFila; ?>)"></td>
+                                <td><input type="time" name="lineas[<?php echo $idFila; ?>][horaHasta]" value="<?php echo substr($l['horaHasta'], 0, 5); ?>" required onchange="calcularTotalEmpleado(<?php echo $idFila; ?>)"></td>
 
                                 <td>
                                     <div class="input-con-boton">
@@ -149,7 +158,12 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                         </button>
                                     </div>
                                 </td>
-                                <td><input type="number" step="0.01" name="lineas[<?php echo $idFila; ?>][importe]" value="<?php echo htmlspecialchars($l['importe'] ?? ''); ?>" placeholder="0.00" style="width: 100px;"></td>
+                                <td>
+                                    <input type="number" step="0.01" name="lineas[<?php echo $idFila; ?>][importe]" value="<?php echo htmlspecialchars($l['importe'] ?? ''); ?>" placeholder="0.00" style="width: 100%;" oninput="calcularTotalEmpleado(<?php echo $idFila; ?>)">
+                                </td>
+                                <td id="total_linea_<?php echo $idFila; ?>" style="text-align: right; font-weight: bold; color: #0f4c81; vertical-align: middle;">
+                                    <?php echo number_format($totalCalculado, 2, '.', ''); ?> €
+                                </td>
                                 <td style="text-align:center;">
                                     <button type="button" class="btn-sm btn-eliminar" onclick="eliminarLinea(<?php echo $idFila; ?>)"><i class="fa-solid fa-trash"></i></button>
                                 </td>
@@ -157,7 +171,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
 
                             <?php if ($tieneError): ?>
                                 <tr class="fila-error-mensaje" id="error_linea_<?php echo $idFila; ?>">
-                                    <td colspan="7">
+                                    <td colspan="8">
                                         <i class="fa-solid fa-circle-exclamation"></i> <?php echo $erroresLineas[$idFila]; ?>
                                     </td>
                                 </tr>
@@ -439,7 +453,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
     function abrirModal(idModal) { document.getElementById(idModal).style.display = 'flex'; }
     function cerrarModal(idModal) { document.getElementById(idModal).style.display = 'none'; }
 
-    // --- NUEVO: Intercepción del envío para mostrar errores en UI ---
+    // Validación y cierre de modal
     document.getElementById('formAlbaran').addEventListener('submit', function(event) {
         const idCliente = document.getElementById('idClienteInput').value;
         const idCentro = document.getElementById('idCentroInput').value;
@@ -447,38 +461,33 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         const textoErrores = document.getElementById('texto-errores-js');
         let errores = [];
 
-        // Resetear estilos y ocultar el div
         document.getElementById('nombreClienteInput').style.border = '1px solid #94a3b8';
         document.getElementById('nombreCentroInput').style.border = '1px solid #94a3b8';
         divErrores.style.display = 'none';
 
-        // Comprobar Cliente
         if (!idCliente || idCliente === "0" || idCliente === "") {
             errores.push("Falta rellenar el Cliente. Utilice el botón 'Buscar'.");
             document.getElementById('nombreClienteInput').style.border = '2px solid #ef4444';
         }
         
-        // Comprobar Centro
         if (!idCentro || idCentro === "0" || idCentro === "") {
             errores.push("Falta rellenar el Centro de Trabajo. Utilice el botón 'Buscar'.");
             document.getElementById('nombreCentroInput').style.border = '2px solid #ef4444';
         }
 
-        // Si hay errores, bloqueamos el envío y mostramos en pantalla
         if (errores.length > 0) {
             event.preventDefault(); 
             textoErrores.innerHTML = "<strong>POR FAVOR REVISE LOS SIGUIENTES ERRORES:</strong><br>" + errores.join("<br>");
             divErrores.style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // Llevar al usuario arriba del todo
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     });
 
-    // --- Lógica Clientes/Centros ---
     function seleccionarCliente(id, nombre) {
         document.getElementById('idClienteInput').value = id;
         const inputNombre = document.getElementById('nombreClienteInput');
         inputNombre.value = nombre;
-        inputNombre.style.border = '1px solid #94a3b8'; // Restaurar color normal
+        inputNombre.style.border = '1px solid #94a3b8'; 
         
         document.getElementById('idCentroInput').value = '';
         document.getElementById('nombreCentroInput').value = 'Seleccione un centro...';
@@ -519,11 +528,10 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         document.getElementById('idCentroInput').value = id;
         const inputNombre = document.getElementById('nombreCentroInput');
         inputNombre.value = direccion;
-        inputNombre.style.border = '1px solid #94a3b8'; // Restaurar color normal
+        inputNombre.style.border = '1px solid #94a3b8';
         cerrarModal('modalCentros');
     }
 
-    // --- Lógica Categoría ---
     function abrirModalCategoria(idFila) {
         filaCategoriaActiva = idFila;
         abrirModal('modalCategorias');
@@ -551,7 +559,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         }
     }
 
-    // --- Lógica Vehículos ---
     function abrirModalVehiculo(idFila) {
         filaVehiculoActiva = idFila;
         abrirModal('modalVehiculos');
@@ -567,7 +574,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         }
     }
 
-    // --- Lógica Líneas Empleado ---
+    // --- NUEVO: CÁLCULO DINÁMICO DE HORAS Y LÍNEAS EMPLEADOS ---
     function agregarLineaEmpleado(idEmpleado, nombreEmpleado) {
         contadorLineas++;
         const fila = document.createElement('tr');
@@ -579,8 +586,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 <input type="hidden" name="lineas[${contadorLineas}][empNombreCompleto]" value="${nombreEmpleado}">
                 <strong>${nombreEmpleado}</strong>
             </td>
-            <td><input type="time" name="lineas[${contadorLineas}][horaDesde]" required></td>
-            <td><input type="time" name="lineas[${contadorLineas}][horaHasta]" required></td>
+            <td><input type="time" name="lineas[${contadorLineas}][horaDesde]" required onchange="calcularTotalEmpleado(${contadorLineas})"></td>
+            <td><input type="time" name="lineas[${contadorLineas}][horaHasta]" required onchange="calcularTotalEmpleado(${contadorLineas})"></td>
             
             <td>
                 <div class="input-con-boton">
@@ -600,7 +607,10 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     </button>
                 </div>
             </td>
-            <td><input type="number" step="0.01" name="lineas[${contadorLineas}][importe]" placeholder="0.00" style="width: 100px;"></td>
+            <td>
+                <input type="number" step="0.01" name="lineas[${contadorLineas}][importe]" placeholder="0.00" style="width: 100%;" oninput="calcularTotalEmpleado(${contadorLineas})">
+            </td>
+            <td id="total_linea_${contadorLineas}" style="text-align: right; font-weight: bold; color: #0f4c81; vertical-align: middle;">0.00 €</td>
             <td style="text-align:center;">
                 <button type="button" class="btn-sm btn-eliminar" onclick="eliminarLinea(${contadorLineas})"><i class="fa-solid fa-trash"></i></button>
             </td>
@@ -616,7 +626,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         if (filaError) filaError.remove();
     }
 
-    // --- Cálculo Empleados ---
     const preciosPuestos = {
         <?php foreach ($puestos as $p): ?> "<?php echo addslashes($p['descripcion']); ?>": <?php echo (float)$p['precioHora']; ?>,
         <?php endforeach; ?>
@@ -639,6 +648,42 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
             importeCalculado = preciosPuestos[inputPuesto];
         }
         inputImporte.value = importeCalculado.toFixed(2);
+        
+        // Recalculamos también el total final de esa línea
+        calcularTotalEmpleado(idFila);
+    }
+
+    // Calcula el total matemático de una línea según las horas de los inputs
+    function calcularTotalEmpleado(idFila) {
+        const inputDesde = document.querySelector(`input[name="lineas[${idFila}][horaDesde]"]`);
+        const inputHasta = document.querySelector(`input[name="lineas[${idFila}][horaHasta]"]`);
+        const inputPrecio = document.querySelector(`input[name="lineas[${idFila}][importe]"]`);
+        const celdaTotal = document.getElementById(`total_linea_${idFila}`);
+
+        if (inputDesde && inputHasta && inputPrecio && celdaTotal) {
+            const vDesde = inputDesde.value;
+            const vHasta = inputHasta.value;
+            const vPrecio = parseFloat(inputPrecio.value) || 0;
+
+            if (vDesde && vHasta) {
+                let [hD, mD] = vDesde.split(':').map(Number);
+                let [hH, mH] = vHasta.split(':').map(Number);
+
+                let minDesde = (hD * 60) + mD;
+                let minHasta = (hH * 60) + mH;
+
+                if (minHasta < minDesde) {
+                    minHasta += 24 * 60; // Salto de medianoche
+                }
+
+                let horas = (minHasta - minDesde) / 60;
+                let total = horas * vPrecio;
+
+                celdaTotal.innerText = total.toFixed(2) + ' €';
+            } else {
+                celdaTotal.innerText = '0.00 €';
+            }
+        }
     }
 
     // --- Lógica Materiales ---

@@ -11,7 +11,8 @@ class Auditoria {
                     lp.idLinea, p.id as idDocumento, p.fechaDesde as fecha, 
                     p.idEmpleado, emp.nombre, emp.apellido1, 
                     lp.idCliente, cli.razonSocial as cliente, 
-                    lp.horaDesde, lp.horaHasta 
+                    lp.horaDesde, lp.horaHasta,
+                    lp.categoriaProfesional, lp.vehiculoUtilizado
                 FROM Partes p 
                 JOIN lineasPartes lp ON p.id = lp.idParte 
                 JOIN Empleados emp ON p.idEmpleado = emp.id
@@ -29,7 +30,8 @@ class Auditoria {
                     la.idLinea, a.id as idDocumento, a.numAlbaran, a.fecha, 
                     la.idEmpleado, emp.nombre, emp.apellido1, 
                     a.idCliente, cli.razonSocial as cliente, 
-                    la.horaDesde, la.horaHasta 
+                    la.horaDesde, la.horaHasta,
+                    la.categoriaProfesional, la.vehiculoUtilizado
                 FROM Albaranes a 
                 JOIN lineasAlbaran la ON a.id = la.idAlbaran 
                 JOIN Empleados emp ON la.idEmpleado = emp.id
