@@ -55,7 +55,7 @@ unset($_SESSION['error_guardado']);
                 <option value="">Todos los centros...</option>
                 <?php foreach ($centros as $cen): ?>
                     <option value="<?php echo $cen['id']; ?>" <?php echo (isset($_GET['idCentro']) && $_GET['idCentro'] == $cen['id']) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($cen['denominacion'] ?? $cen['direccion']); ?>
+                        <?php echo htmlspecialchars($cen['denominacion'] ?? $cen['direccion']. " (". $cen['poblado']. ")"); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
