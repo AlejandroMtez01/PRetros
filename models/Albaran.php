@@ -13,7 +13,7 @@ class Albaran
     // ====================================================
     public function obtenerTodosFiltrados($idEmpresa, $filtros)
     {
-        $sql = "SELECT a.*, c.razonSocial as nombreCliente, ce.direccion as nombreCentro 
+        $sql = "SELECT a.*, c.razonSocial as nombreCliente, ce.direccion as nombreCentro, ce.poblado as poblado 
                 FROM Albaranes a
                 LEFT JOIN Clientes c ON a.idCliente = c.id
                 LEFT JOIN CentrosCliente ce ON a.idCentro = ce.id
@@ -76,7 +76,7 @@ class Albaran
     // ====================================================
     public function obtenerPorId($idAlbaran, $idEmpresa)
     {
-        $sql = "SELECT a.*, c.razonSocial as nombreCliente, ce.direccion as nombreCentro 
+        $sql = "SELECT a.*, c.razonSocial as nombreCliente, ce.direccion as nombreCentro, ce.poblado as poblado
                 FROM Albaranes a
                 LEFT JOIN Clientes c ON a.idCliente = c.id
                 LEFT JOIN CentrosCliente ce ON a.idCentro = ce.id

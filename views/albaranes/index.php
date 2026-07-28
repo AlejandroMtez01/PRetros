@@ -107,7 +107,7 @@ unset($_SESSION['error_guardado']);
                         <td style="padding: 12px 15px;"><?php echo date('d/m/Y', strtotime($alb['fecha'])); ?></td>
 
                         <td style="padding: 12px 15px;"><?php echo htmlspecialchars($alb['nombreCliente']); ?></td>
-                        <td style="padding: 12px 15px;"><?php echo htmlspecialchars($alb['nombreCentro']); ?></td>
+                        <td style="padding: 12px 15px;"><?php echo htmlspecialchars($alb['nombreCentro']. " (". $alb['poblado']. ")"); ?></td>
 
                         <!-- Botonera de acciones (Ver y Editar) -->
                         <td class="celda-acciones" style="padding: 12px 15px; display: flex; gap: 8px; justify-content: center;">

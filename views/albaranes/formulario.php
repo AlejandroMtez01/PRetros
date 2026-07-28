@@ -66,7 +66,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     <label>Centro de Trabajo</label>
                     <div class="input-con-boton">
                         <input type="hidden" name="idCentro" id="idCentroInput" value="<?php echo $albaran['idCentro'] ?? ''; ?>">
-                        <input type="text" name="nombreCentro" id="nombreCentroInput" value="<?php echo htmlspecialchars($albaran['nombreCentro'] ?? ''); ?>" placeholder="Seleccione primero un cliente..." readonly>
+                        <input type="text" name="nombreCentro" id="nombreCentroInput" value="<?php echo htmlspecialchars($albaran['nombreCentro']." (".$albaran['poblado'].")" ?? ''); ?>" placeholder="Seleccione primero un cliente..." readonly>
                         <button type="button" id="btnBuscarCentro" class="btn-secundario btn-icono" onclick="abrirModal('modalCentros')" <?php echo empty($albaran['idCliente']) ? 'disabled' : ''; ?>>
                             <i class="fa-solid fa-location-dot"></i> Buscar
                         </button>
@@ -216,7 +216,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <strong><?php echo htmlspecialchars($m['denominacionArticulo']); ?></strong>
                                 </td>
                                 <td>
-                                    <input type="number" step="0.01" class="precio-mat" id="precio_mat_<?php echo $idFilaM; ?>" name="materiales[<?php echo $idFilaM; ?>][precioUnitario]" value="<?php echo $m['precioUnitario']; ?>" readonly style="width: 100px; background: #e2e8f0;">
+                                    <input type="number" step="0.01" class="precio-mat" id="precio_mat_<?php echo $idFilaM; ?>" name="materiales[<?php echo $idFilaM; ?>][precioUnitario]" value="<?php echo $m['precioUnitario']; ?>" style="width: 100px;" required oninput="calcularTotalMaterial(<?php echo $idFilaM; ?>)">
                                 </td>
                                 <td>
                                     <input type="number" step="0.01" id="unidades_mat_<?php echo $idFilaM; ?>" name="materiales[<?php echo $idFilaM; ?>][unidades]" value="<?php echo $m['unidades']; ?>" required oninput="calcularTotalMaterial(<?php echo $idFilaM; ?>)" style="width: 100px;">
@@ -319,16 +319,27 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
             <table class="tabla-datos">
                 <thead>
                     <tr>
-                        <th>Dirección / Denominación</th>
+                        <th>Dirección / Localidad</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody id="cuerpo-tabla-centros">
-                    <?php if (!empty($centros_actuales)): foreach ($centros_actuales as $cen): ?>
+                    <?php if (!empty($centros_actuales)): foreach ($centros_actuales as $cen): 
+                        // Construcción unificada y segura del texto "Dirección (Localidad)"
+                        $dir = !empty($cen['direccion']) ? $cen['direccion'] : (!empty($cen['denominacion']) ? $cen['denominacion'] : 'Sin dirección');
+                        $pob = $cen['poblado'] ?? 'aa';
+                        $textoModal = !empty($pob) ? $dir . ' (' . $pob . ')' : $dir;
+                        $textoSeguro = htmlspecialchars(addslashes($textoModal), ENT_QUOTES);
+                    ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($cen['denominacion']); ?></td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($dir); ?></strong>
+                                    <?php if(!empty($pob)): ?>
+                                        <br><small style="color: #64748b;"><i class="fa-solid fa-map-pin"></i> <?php echo htmlspecialchars($pob); ?></small>
+                                    <?php endif; ?>
+                                </td>
                                 <td style="text-align: center;">
-                                    <button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(<?php echo $cen['id']; ?>, '<?php echo htmlspecialchars(addslashes($cen['denominacion'])); ?>')">Seleccionar</button>
+                                    <button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(<?php echo $cen['id']; ?>, '<?php echo $textoSeguro; ?>')">Seleccionar</button>
                                 </td>
                             </tr>
                     <?php endforeach; endif; ?>
@@ -495,6 +506,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         cargarCentros(id);
     }
 
+    // --- CARGA DINÁMICA DE DIRECCIÓN Y LOCALIDAD POR AJAX ---
     function cargarCentros(idCliente) {
         const tbody = document.getElementById('cuerpo-tabla-centros');
         const btnCentro = document.getElementById('btnBuscarCentro');
@@ -513,15 +525,23 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     return;
                 }
                 data.forEach(centro => {
-                    const nombreCentro = centro.denominacion || centro.direccion;
-                    const nombreSeguro = nombreCentro.replace(/'/g, "\\'");
+                    const direccion = centro.direccion || centro.denominacion || 'Sin dirección';
+                    const localidad = centro.poblado ? centro.poblado : '';
+                    
+                    const textoCombinado = localidad ? `${direccion} (${localidad})` : direccion;
+                    // Escape fuerte para el onclick de JS
+                    const nombreSeguro = textoCombinado.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    
                     tbody.innerHTML += `
                         <tr>
-                            <td>${nombreCentro}</td>
+                            <td>
+                                <strong>${direccion}</strong>
+                                ${localidad ? `<br><small style="color: #64748b;"><i class="fa-solid fa-map-pin"></i> ${localidad}</small>` : ''}
+                            </td>
                             <td style="text-align: center;"><button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(${centro.id}, '${nombreSeguro}')">Seleccionar</button></td>
                         </tr>`;
                 });
-            }).catch(error => { tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;">Error: ${error.message}</td></tr>`; });
+            }).catch(error => { tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;">Error al cargar centros (Revise el Controlador).</td></tr>`; });
     }
 
     function seleccionarCentro(id, direccion) {
@@ -574,7 +594,6 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         }
     }
 
-    // --- NUEVO: CÁLCULO DINÁMICO DE HORAS Y LÍNEAS EMPLEADOS ---
     function agregarLineaEmpleado(idEmpleado, nombreEmpleado) {
         contadorLineas++;
         const fila = document.createElement('tr');
@@ -649,11 +668,9 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         }
         inputImporte.value = importeCalculado.toFixed(2);
         
-        // Recalculamos también el total final de esa línea
         calcularTotalEmpleado(idFila);
     }
 
-    // Calcula el total matemático de una línea según las horas de los inputs
     function calcularTotalEmpleado(idFila) {
         const inputDesde = document.querySelector(`input[name="lineas[${idFila}][horaDesde]"]`);
         const inputHasta = document.querySelector(`input[name="lineas[${idFila}][horaHasta]"]`);
@@ -701,7 +718,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 <strong>${nombre}</strong>
             </td>
             <td>
-                <input type="number" step="0.01" id="precio_mat_${contadorMateriales}" name="materiales[${contadorMateriales}][precioUnitario]" value="${precio}" readonly style="width: 100px; background: #e2e8f0;">
+                <input type="number" step="0.01" id="precio_mat_${contadorMateriales}" name="materiales[${contadorMateriales}][precioUnitario]" value="${precio}" style="width: 100px;" required oninput="calcularTotalMaterial(${contadorMateriales})">
             </td>
             <td>
                 <input type="number" step="0.01" id="unidades_mat_${contadorMateriales}" name="materiales[${contadorMateriales}][unidades]" value="1" required oninput="calcularTotalMaterial(${contadorMateriales})" style="width: 100px;">

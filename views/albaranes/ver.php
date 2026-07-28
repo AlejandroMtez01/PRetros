@@ -67,7 +67,7 @@ $granTotal = $totalEmpleados + $totalMateriales;
                 </div>
                 <div>
                     <strong style="color: #475569; font-size: 0.85rem; display: block; margin-bottom: 5px;">Centro de Trabajo</strong>
-                    <p style="margin: 0; font-size: 1.1rem;"><?php echo htmlspecialchars($albaran['nombreCentro']); ?></p>
+                    <p style="margin: 0; font-size: 1.1rem;"><?php echo htmlspecialchars($albaran['nombreCentro'] . " (".$albaran['poblado'].")"); ?></p>
                 </div>
             </div>
             

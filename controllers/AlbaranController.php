@@ -184,7 +184,7 @@ class AlbaranController
         // Cargar Catálogo de Materiales (Filtro MATER)
         $catalogoMateriales = $this->obtenerCatalogoMateriales($idEmpresaActiva);
 
-        $sqlCentros = "SELECT id, direccion as denominacion FROM CentrosCliente WHERE idCliente = ?";
+        $sqlCentros = "SELECT id, direccion as denominacion, poblado FROM CentrosCliente WHERE idCliente = ?";
         $stmtC = $this->conexion->prepare($sqlCentros);
         if ($stmtC) {
             $stmtC->bind_param("i", $albaran['idCliente']);
@@ -369,7 +369,7 @@ class AlbaranController
 
     private function obtenerCentros($idEmpresa)
     {
-        $sql = "SELECT id, direccion FROM CentrosCliente WHERE idEmpresa = ? ORDER BY direccion ASC";
+        $sql = "SELECT id, direccion, poblado FROM CentrosCliente WHERE idEmpresa = ? ORDER BY direccion ASC";
         $stmt = $this->conexion->prepare($sql);
         if ($stmt) {
             $stmt->bind_param("i", $idEmpresa);
@@ -396,7 +396,7 @@ class AlbaranController
         echo json_encode([]);
         exit;
     }
-    
+
     private function obtenerVehiculosPrecioHora($idEmpresa)
     {
         $sql = "SELECT prefijo_tipo, denominacion, datos_dinamicos FROM Inventario WHERE idEmpresa = ? AND datos_dinamicos LIKE '%\"precio_hora\"%' ORDER BY denominacion ASC";
