@@ -1,5 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 $mensaje_error = $_SESSION['error_guardado'] ?? null;
 unset($_SESSION['error_guardado']);
 
@@ -66,7 +68,9 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     <label>Centro de Trabajo</label>
                     <div class="input-con-boton">
                         <input type="hidden" name="idCentro" id="idCentroInput" value="<?php echo $albaran['idCentro'] ?? ''; ?>">
-                        <input type="text" name="nombreCentro" id="nombreCentroInput" value="<?php echo htmlspecialchars($albaran['nombreCentro']." (".$albaran['poblado'].")" ?? ''); ?>" placeholder="Seleccione primero un cliente..." readonly>
+                        <input type="text" name="nombreCentro" id="nombreCentroInput"
+                            value="<?php echo htmlspecialchars(!empty($albaran['nombreCentro']) ? $albaran['nombreCentro'] . (!empty($albaran['poblado']) ? ' (' . $albaran['poblado'] . ')' : '') : ''); ?>"
+                            placeholder="Seleccione primero un cliente..." readonly>
                         <button type="button" id="btnBuscarCentro" class="btn-secundario btn-icono" onclick="abrirModal('modalCentros')" <?php echo empty($albaran['idCliente']) ? 'disabled' : ''; ?>>
                             <i class="fa-solid fa-location-dot"></i> Buscar
                         </button>
@@ -107,7 +111,9 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     if (!empty($lineas)):
                         foreach ($lineas as $idFila => $l):
                             $idFila = is_numeric($idFila) ? (int)$idFila : ++$maxIdFila;
-                            if ($idFila > $maxIdFila) { $maxIdFila = $idFila; }
+                            if ($idFila > $maxIdFila) {
+                                $maxIdFila = $idFila;
+                            }
 
                             $nombreEmpleadoMostrado = $l['empNombreCompleto'] ?? trim(($l['empNombre'] ?? '') . ' ' . ($l['empApellido'] ?? ''));
 
@@ -115,7 +121,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                             if (!empty($l['vehiculoUtilizado'])) {
                                 foreach ($vehiculos_precio_hora as $veh) {
                                     if (trim($veh['denominacion']) == trim($l['vehiculoUtilizado'])) {
-                                        $nombreVehiculoCargado = htmlspecialchars($veh['denominacion']); break;
+                                        $nombreVehiculoCargado = htmlspecialchars($veh['denominacion']);
+                                        break;
                                     }
                                 }
                             }
@@ -268,14 +275,15 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                         </td>
                     </tr>
                     <?php if (!empty($puestos)): foreach ($puestos as $puesto): ?>
-                        <?php if ($puesto['descripcion'] == 'Maquinista') continue; ?>
+                            <?php if ($puesto['descripcion'] == 'Maquinista') continue; ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($puesto['descripcion']); ?></td>
                                 <td style="text-align: center;">
                                     <button type="button" class="btn-sm btn-editar" onclick="seleccionarCategoria('<?php echo htmlspecialchars(addslashes($puesto['descripcion'])); ?>', false)">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach; endif; ?>
+                    <?php endforeach;
+                    endif; ?>
                 </tbody>
             </table>
         </div>
@@ -303,7 +311,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="seleccionarCliente(<?php echo $cli['id']; ?>, '<?php echo htmlspecialchars(addslashes($cli['denominacion'] ?? $cli['razonSocial'])); ?>')">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach; endif; ?>
+                    <?php endforeach;
+                    endif; ?>
                 </tbody>
             </table>
         </div>
@@ -324,17 +333,17 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                     </tr>
                 </thead>
                 <tbody id="cuerpo-tabla-centros">
-                    <?php if (!empty($centros_actuales)): foreach ($centros_actuales as $cen): 
-                        // Construcción unificada y segura del texto "Dirección (Localidad)"
-                        $dir = !empty($cen['direccion']) ? $cen['direccion'] : (!empty($cen['denominacion']) ? $cen['denominacion'] : 'Sin dirección');
-                        $pob = $cen['poblado'] ?? 'aa';
-                        $textoModal = !empty($pob) ? $dir . ' (' . $pob . ')' : $dir;
-                        $textoSeguro = htmlspecialchars(addslashes($textoModal), ENT_QUOTES);
+                    <?php if (!empty($centros_actuales)): foreach ($centros_actuales as $cen):
+                            // Construcción unificada y segura del texto "Dirección (Localidad)"
+                            $dir = !empty($cen['direccion']) ? $cen['direccion'] : (!empty($cen['denominacion']) ? $cen['denominacion'] : 'Sin dirección');
+                            $pob = $cen['poblado'] ?? 'aa';
+                            $textoModal = !empty($pob) ? $dir . ' (' . $pob . ')' : $dir;
+                            $textoSeguro = htmlspecialchars(addslashes($textoModal), ENT_QUOTES);
                     ?>
                             <tr>
                                 <td>
                                     <strong><?php echo htmlspecialchars($dir); ?></strong>
-                                    <?php if(!empty($pob)): ?>
+                                    <?php if (!empty($pob)): ?>
                                         <br><small style="color: #64748b;"><i class="fa-solid fa-map-pin"></i> <?php echo htmlspecialchars($pob); ?></small>
                                     <?php endif; ?>
                                 </td>
@@ -342,7 +351,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(<?php echo $cen['id']; ?>, '<?php echo $textoSeguro; ?>')">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach; endif; ?>
+                    <?php endforeach;
+                    endif; ?>
                 </tbody>
             </table>
         </div>
@@ -372,7 +382,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="agregarLineaEmpleado(<?php echo $emp['id']; ?>, '<?php echo htmlspecialchars(addslashes($emp['nombre'] . ' ' . $emp['apellido1'])); ?>')">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach; endif; ?>
+                    <?php endforeach;
+                    endif; ?>
                 </tbody>
             </table>
         </div>
@@ -409,7 +420,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="seleccionarVehiculo('<?php echo $denominacionJs; ?>', '<?php echo $denominacionJs; ?>')">Seleccionar</button>
                                 </td>
                             </tr>
-                    <?php endforeach; endif; ?>
+                    <?php endforeach;
+                    endif; ?>
                 </tbody>
             </table>
         </div>
@@ -441,8 +453,11 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                                     <button type="button" class="btn-sm btn-editar" onclick="agregarLineaMaterial('<?php echo htmlspecialchars(addslashes($catMat['nombre_extraido'])); ?>', <?php echo $catMat['precio_extraido']; ?>)">Añadir</button>
                                 </td>
                             </tr>
-                    <?php endforeach; else: ?>
-                        <tr><td colspan="4" style="text-align: center; color: #64748b;">No hay materiales registrados en el inventario con este formato.</td></tr>
+                        <?php endforeach;
+                    else: ?>
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #64748b;">No hay materiales registrados en el inventario con este formato.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -461,8 +476,13 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
     let filaVehiculoActiva = null;
     let filaCategoriaActiva = null;
 
-    function abrirModal(idModal) { document.getElementById(idModal).style.display = 'flex'; }
-    function cerrarModal(idModal) { document.getElementById(idModal).style.display = 'none'; }
+    function abrirModal(idModal) {
+        document.getElementById(idModal).style.display = 'flex';
+    }
+
+    function cerrarModal(idModal) {
+        document.getElementById(idModal).style.display = 'none';
+    }
 
     // Validación y cierre de modal
     document.getElementById('formAlbaran').addEventListener('submit', function(event) {
@@ -480,17 +500,20 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
             errores.push("Falta rellenar el Cliente. Utilice el botón 'Buscar'.");
             document.getElementById('nombreClienteInput').style.border = '2px solid #ef4444';
         }
-        
+
         if (!idCentro || idCentro === "0" || idCentro === "") {
             errores.push("Falta rellenar el Centro de Trabajo. Utilice el botón 'Buscar'.");
             document.getElementById('nombreCentroInput').style.border = '2px solid #ef4444';
         }
 
         if (errores.length > 0) {
-            event.preventDefault(); 
+            event.preventDefault();
             textoErrores.innerHTML = "<strong>POR FAVOR REVISE LOS SIGUIENTES ERRORES:</strong><br>" + errores.join("<br>");
             divErrores.style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         }
     });
 
@@ -498,8 +521,8 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
         document.getElementById('idClienteInput').value = id;
         const inputNombre = document.getElementById('nombreClienteInput');
         inputNombre.value = nombre;
-        inputNombre.style.border = '1px solid #94a3b8'; 
-        
+        inputNombre.style.border = '1px solid #94a3b8';
+
         document.getElementById('idCentroInput').value = '';
         document.getElementById('nombreCentroInput').value = 'Seleccione un centro...';
         cerrarModal('modalClientes');
@@ -527,11 +550,11 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                 data.forEach(centro => {
                     const direccion = centro.direccion || centro.denominacion || 'Sin dirección';
                     const localidad = centro.poblado ? centro.poblado : '';
-                    
+
                     const textoCombinado = localidad ? `${direccion} (${localidad})` : direccion;
                     // Escape fuerte para el onclick de JS
                     const nombreSeguro = textoCombinado.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    
+
                     tbody.innerHTML += `
                         <tr>
                             <td>
@@ -541,7 +564,9 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
                             <td style="text-align: center;"><button type="button" class="btn-sm btn-editar" onclick="seleccionarCentro(${centro.id}, '${nombreSeguro}')">Seleccionar</button></td>
                         </tr>`;
                 });
-            }).catch(error => { tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;">Error al cargar centros (Revise el Controlador).</td></tr>`; });
+            }).catch(error => {
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;">Error al cargar centros (Revise el Controlador).</td></tr>`;
+            });
     }
 
     function seleccionarCentro(id, direccion) {
@@ -667,7 +692,7 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
             importeCalculado = preciosPuestos[inputPuesto];
         }
         inputImporte.value = importeCalculado.toFixed(2);
-        
+
         calcularTotalEmpleado(idFila);
     }
 
@@ -749,29 +774,191 @@ $textoBoton = $esEdicion ? 'Actualizar Albarán' : 'Guardar Albarán';
 </script>
 
 <style>
-    .fila-error td { background-color: #fef2f2 !important; border-top: 2px solid #ef4444; }
-    .fila-error-mensaje td { background-color: #fef2f2; color: #b91c1c; font-weight: bold; padding: 5px 15px; border-bottom: 2px solid #ef4444; }
-    .formulario-estandar fieldset { border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; background: #f8fafc; margin-bottom: 20px; }
-    .formulario-estandar legend { background: #0f4c81; color: #ffffff; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
-    .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
-    .form-group label { font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.85rem; }
-    .formulario-estandar input:not([type="hidden"]), .formulario-estandar select, .formulario-estandar textarea { padding: 10px; border: 1px solid #94a3b8; border-radius: 6px; font-size: 0.95rem; font-family: inherit; background: #ffffff; transition: border-color 0.2s, box-shadow 0.2s; width: 100%; box-sizing: border-box; }
-    .formulario-estandar input:focus, .formulario-estandar select:focus, .formulario-estandar textarea:focus { outline: none; border-color: #0f4c81; box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.15); }
-    .formulario-estandar input[readonly] { background-color: #e2e8f0; cursor: not-allowed; }
-    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-    .input-con-boton { display: flex; gap: 10px; }
-    .input-con-boton input { flex-grow: 1; }
-    .mt-15 { margin-top: 15px; }
-    .alerta-error { background-color: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid #f87171; margin-bottom: 20px; font-size: 0.95rem; }
-    .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; }
-    .modal-contenido { background-color: #ffffff; padding: 25px; width: 90%; max-width: 800px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
-    .modal-contenido h3 { margin-top: 0; color: #0f4c81; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; }
-    .tabla-contenedor-scroll { max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }
-    button, .btn-secundario, .btn-principal { font-family: inherit; cursor: pointer; transition: opacity 0.2s; border: none; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button:hover:not(:disabled), .btn-secundario:hover, .btn-principal:hover { opacity: 0.9; }
-    .btn-principal { background: #0f4c81; color: white; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 1rem; }
-    .btn-secundario { background: #475569; color: white; padding: 10px 15px; border-radius: 6px; font-weight: 500; }
-    .btn-eliminar { background: #ef4444; color: white; padding: 10px 15px; border-radius: 6px; font-weight: 500; }
-    .btn-icono { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .fila-error td {
+        background-color: #fef2f2 !important;
+        border-top: 2px solid #ef4444;
+    }
+
+    .fila-error-mensaje td {
+        background-color: #fef2f2;
+        color: #b91c1c;
+        font-weight: bold;
+        padding: 5px 15px;
+        border-bottom: 2px solid #ef4444;
+    }
+
+    .formulario-estandar fieldset {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 20px;
+        background: #f8fafc;
+        margin-bottom: 20px;
+    }
+
+    .formulario-estandar legend {
+        background: #0f4c81;
+        color: #ffffff;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: bold;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 6px;
+        font-size: 0.85rem;
+    }
+
+    .formulario-estandar input:not([type="hidden"]),
+    .formulario-estandar select,
+    .formulario-estandar textarea {
+        padding: 10px;
+        border: 1px solid #94a3b8;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        background: #ffffff;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .formulario-estandar input:focus,
+    .formulario-estandar select:focus,
+    .formulario-estandar textarea:focus {
+        outline: none;
+        border-color: #0f4c81;
+        box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.15);
+    }
+
+    .formulario-estandar input[readonly] {
+        background-color: #e2e8f0;
+        cursor: not-allowed;
+    }
+
+    .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .input-con-boton {
+        display: flex;
+        gap: 10px;
+    }
+
+    .input-con-boton input {
+        flex-grow: 1;
+    }
+
+    .mt-15 {
+        margin-top: 15px;
+    }
+
+    .alerta-error {
+        background-color: #fee2e2;
+        color: #b91c1c;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #f87171;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+    }
+
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(15, 23, 42, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-contenido {
+        background-color: #ffffff;
+        padding: 25px;
+        width: 90%;
+        max-width: 800px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-contenido h3 {
+        margin-top: 0;
+        color: #0f4c81;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    .tabla-contenedor-scroll {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+    }
+
+    button,
+    .btn-secundario,
+    .btn-principal {
+        font-family: inherit;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        border: none;
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled),
+    .btn-secundario:hover,
+    .btn-principal:hover {
+        opacity: 0.9;
+    }
+
+    .btn-principal {
+        background: #0f4c81;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .btn-secundario {
+        background: #475569;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .btn-eliminar {
+        background: #ef4444;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .btn-icono {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+    }
 </style>
