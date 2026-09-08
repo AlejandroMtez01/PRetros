@@ -419,7 +419,8 @@ class AlbaranController
     // ==========================================
     private function obtenerCatalogoMateriales($idEmpresa)
     {
-        $sql = "SELECT denominacion, datos_dinamicos FROM Inventario WHERE idEmpresa = ? AND prefijo_tipo = 'MATER' ORDER BY denominacion ASC";
+        //$sql = "SELECT denominacion, datos_dinamicos FROM Inventario WHERE idEmpresa = ? AND prefijo_tipo = 'MATER' ORDER BY denominacion ASC";
+        $sql = "SELECT denominacion, datos_dinamicos FROM Inventario WHERE idEmpresa = ? AND datos_dinamicos LIKE '%\"precio\"%' ORDER BY denominacion ASC";
         $stmt = $this->conexion->prepare($sql);
         $catalogo = [];
         
