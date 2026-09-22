@@ -34,9 +34,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="CIF">CIF *</label>
-                    <input type="text" id="CIF" name="CIF" required
-                        value="<?php echo isset($cliente) ? htmlspecialchars($cliente['CIF']) : ''; ?>"
+                    <label for="CIF">CIF</label>
+                    <input type="text" id="CIF" name="CIF"
+                        value="<?php echo isset($cliente) ? htmlspecialchars($cliente['CIF'] ?? '') : ''; ?>"
                         class="<?php echo isset($errores['CIF']) ? 'input-error' : ''; ?>"
                         placeholder="Ej: B12345678">
                 </div>
@@ -53,7 +53,7 @@
 
             <div class="acciones-formulario">
                 <a href="/index.php?controller=cliente&action=index" class="btn-secundario">
-                    <i class="fa-solid fa-xmark"></i> &nbsp;  Cancelar
+                    <i class="fa-solid fa-xmark"></i> &nbsp; Cancelar
                 </a>
                 <button type="submit" class="btn-primario">
                     <i class="fa-solid fa-floppy-disk"></i> &nbsp; Guardar Cliente

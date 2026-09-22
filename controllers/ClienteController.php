@@ -21,28 +21,32 @@ class ClienteController {
         require_once '../views/layout/master.php';
     }
 
- public function guardar() {
+    public function guardar() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             require_once '../helpers/Validador.php';
             
-            // 1. Ahora los errores serán asociativos: 'id_del_campo' => 'Mensaje'
             $errores = []; 
+            
+            // 1. Tratamos el CIF: si está vacío, lo convertimos en null
+            $cifInput = trim($_POST['CIF']);
+            $cifFinal = empty($cifInput) ? null : $cifInput;
             
             $datos = [
                 'razonSocial' => trim($_POST['razonSocial']),
-                'CIF'         => trim($_POST['CIF']),
+                'CIF'         => $cifFinal,
                 'sedeFiscal'  => trim($_POST['sedeFiscal']),
                 'idUsuario'   => $_SESSION['usuario_id'],
                 'idEmpresa'   => $_SESSION['idEmpresa']
             ];
             
-            // 2. Asociamos el error al ID 'CIF'
-            if (!Validador::validarCIF($datos['CIF'])) {
-                $errores['CIF'] = "El CIF introducido no tiene un formato válido.";
+            // 2. Solo validamos el CIF si el usuario ha escrito algo
+            if ($datos['CIF'] !== null) {
+                if (!Validador::validarCIF($datos['CIF'])) {
+                    $errores['CIF'] = "El CIF/NIF introducido no tiene un formato válido.";
+                }
             }
             
-            // Si el campo razón social estuviera vacío (ejemplo adicional)
             if (empty($datos['razonSocial'])) {
                 $errores['razonSocial'] = "La razón social es obligatoria.";
             }
@@ -80,22 +84,26 @@ class ClienteController {
     public function actualizar($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
-            // Incluimos nuestro validador
             require_once '../helpers/Validador.php';
             
             $errores = []; 
             
-            // Recogemos los datos (fíjate que no actualizamos el idEmpresa, solo los datos fiscales)
+            // 1. Tratamos el CIF: si está vacío, lo convertimos en null
+            $cifInput = trim($_POST['CIF']);
+            $cifFinal = empty($cifInput) ? null : $cifInput;
+            
             $datos = [
                 'razonSocial' => trim($_POST['razonSocial']),
-                'CIF'         => trim($_POST['CIF']),
+                'CIF'         => $cifFinal,
                 'sedeFiscal'  => trim($_POST['sedeFiscal']),
                 'idUsuario'   => $_SESSION['usuario_id']
             ];
             
-            // 1. VALIDACIONES
-            if (!Validador::validarCIF($datos['CIF'])) {
-                $errores['CIF'] = "El CIF introducido no tiene un formato válido.";
+            // 2. Solo validamos el CIF si el usuario ha escrito algo
+            if ($datos['CIF'] !== null) {
+                if (!Validador::validarCIF($datos['CIF'])) {
+                    $errores['CIF'] = "El CIF/NIF introducido no tiene un formato válido.";
+                }
             }
             
             if (empty($datos['razonSocial'])) {
@@ -106,27 +114,23 @@ class ClienteController {
                 $errores['sedeFiscal'] = "La sede fiscal es obligatoria.";
             }
             
-            // 2. SI NO HAY ERRORES, INTENTAMOS ACTUALIZAR
+            // 3. SI NO HAY ERRORES, INTENTAMOS ACTUALIZAR
             if (empty($errores)) {
                 try {
                     $this->modelo->actualizarCliente($id, $datos);
                     header("Location: /index.php?controller=cliente&action=index");
                     exit;
                 } catch (Exception $e) {
-                    // Si falla MySQL (por ejemplo, si intenta poner un CIF que ya tiene otro cliente)
                     $errores['general'] = "Error al actualizar en BD: " . $e->getMessage();
                 }
             }
             
-            // 3. SI LLEGAMOS AQUÍ, ES QUE HAY ERRORES (Validación o MySQL)
+            // 4. SI LLEGAMOS AQUÍ, ES QUE HAY ERRORES (Validación o MySQL)
             $titulo_formulario = "Modificar Cliente";
-            
-            // Mantenemos la URL de acción apuntando a actualizar con el ID correspondiente
             $accion_url = "/index.php?controller=cliente&action=actualizar&id=" . $id;
             
-            // Le pasamos a la vista los datos que el usuario intentó guardar para que no los pierda
             $cliente = $datos; 
-            $cliente['id'] = $id; // Añadimos el ID original al array por si la vista lo necesita
+            $cliente['id'] = $id; 
             
             $contenido_vista = '../views/clientes/form.php';
             require_once '../views/layout/master.php';
